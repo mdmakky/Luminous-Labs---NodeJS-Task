@@ -26,8 +26,7 @@ const errorHandler = (err, _req, res, _next) => {
   }
 
   // Handle unknown/unexpected errors
-  const message =
-    process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message;
+  const message = process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message;
 
   return res.status(500).json({
     success: false,

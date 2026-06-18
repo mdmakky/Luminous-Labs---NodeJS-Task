@@ -13,11 +13,9 @@ const hashToken = (token) => {
 
 // Generate an access token (short-lived)
 const generateAccessToken = (user) => {
-  return jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
-    env.JWT_SECRET,
-    { expiresIn: env.JWT_ACCESS_EXPIRY },
-  );
+  return jwt.sign({ userId: user.id, email: user.email, role: user.role }, env.JWT_SECRET, {
+    expiresIn: env.JWT_ACCESS_EXPIRY,
+  });
 };
 
 // Generate a random refresh token and store its hash in DB
