@@ -3,4 +3,5 @@ export default {
   transform: {},
   extensionsToTreatAsEsm: [],
   moduleNameMapper: {},
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 };
