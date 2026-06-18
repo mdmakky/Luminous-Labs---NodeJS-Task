@@ -14,4 +14,5 @@ const prisma = new PrismaClient({
   log: env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
+export { pool };
 export default prisma;
