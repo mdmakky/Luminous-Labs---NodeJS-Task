@@ -23,9 +23,9 @@ app.get('/health', (_req, res) => {
   sendSuccess(res, { status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ----- API routes (mounted later per layer) -----
-// import routes from './routes/index.js';
-// app.use('/api/v1', routes);
+// ----- API routes -----
+import routes from './routes/index.js';
+app.use('/api/v1', routes);
 
 // ----- Centralized error handler (must be last) -----
 app.use(errorHandler);
