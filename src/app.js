@@ -18,7 +18,16 @@ app.use(express.urlencoded({ extended: true }));
 // Request logging (dev format)
 app.use(morgan('dev'));
 
-// ----- Health check -----
+// ----- Welcome and Health check -----
+app.get('/', (_req, res) => {
+  sendSuccess(res, {
+    message: 'Welcome to the Task Assignment API',
+    version: '1.0.0',
+    docs: '/README.md',
+    health: '/health',
+  });
+});
+
 app.get('/health', (_req, res) => {
   sendSuccess(res, { status: 'ok', timestamp: new Date().toISOString() });
 });
