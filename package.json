@@ -1,0 +1,54 @@
+{
+  "name": "task-assignment-api",
+  "version": "1.0.0",
+  "description": "Task Assignment API with Audit Trail - Node.js, Express, Prisma, PostgreSQL",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\" \"prisma/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\" \"prisma/**/*.js\"",
+    "migrate": "npx prisma migrate dev",
+    "migrate:prod": "npx prisma migrate deploy",
+    "generate": "npx prisma generate",
+    "seed": "node prisma/seed.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --detectOpenHandles",
+    "test:verbose": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --detectOpenHandles --verbose"
+  },
+  "keywords": [
+    "task-api",
+    "express",
+    "prisma",
+    "jwt",
+    "rbac"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.4",
+    "prisma": "^7.8.0",
+    "supertest": "^7.2.2"
+  }
+}
