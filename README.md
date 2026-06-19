@@ -30,6 +30,9 @@
 
 ### Local Setup
 
+> [!IMPORTANT]
+> You **must** run the database migrations (`npm run migrate` or `npx prisma migrate dev`) to create the necessary tables in your database **before** running the seed command (`npm run seed`). Otherwise, the seeding process will fail.
+
 ```bash
 # 1. Clone and install
 npm install
@@ -38,10 +41,10 @@ npm install
 cp .env.example .env
 # Edit .env with your DATABASE_URL and JWT_SECRET
 
-# 3. Run database migrations
+# 3. Run database migrations (MUST run before seeding to create tables)
 npm run migrate
 
-# 4. Seed default users and sample data
+# 4. Seed default users and sample data (fails if migrations aren't applied first)
 npm run seed
 
 # 5. Start development server
