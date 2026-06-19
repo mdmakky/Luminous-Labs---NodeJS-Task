@@ -17,8 +17,9 @@
 7. [Audit Trail](#audit-trail)
 8. [Filtering, Sorting & Pagination](#filtering-sorting--pagination)
 9. [API Reference](#api-reference)
-10. [Tests](#tests)
-11. [Bonus Features](#bonus-features)
+10. [Testing Strategy & Coverage](#production-readiness--resilience-testing-strategy)
+11. [Postman Setup & Integration](#postman-setup--integration)
+12. [Bonus Features](#bonus-features)
 
 ---
 
@@ -570,6 +571,32 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 - **Isolation**: Each test suite runs `clearDatabase()` before every test run.
 - **E2E Fidelity**: Tests run against a live PostgreSQL database instance through the Express app (using `supertest`), using real schema migrations without mocks.
 - **Centralized Errors**: Centralized error mapping logic is validated under dynamic `process.env.NODE_ENV` switches (handling development diagnostics and production privacy masks).
+
+---
+
+## Postman Setup & Integration
+
+A production-ready Postman collection and environment schema are provided in the root directory to simplify integration testing and dynamic API exploration.
+
+### Purpose of the Files
+1. **[`postman_collection.json`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/postman_collection.json)**:
+   * Contains pre-configured requests for all **22 endpoints** organized into folders (System, Auth, Projects, Tasks, Comments).
+   * Includes **dynamic Javascript tests** that validate status codes and automatically capture `accessToken` / `refreshToken` / resource IDs from responses, saving them directly into environment variables.
+2. **[`postman_environment.json`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/postman_environment.json)**:
+   * Holds configuration keys (`base_url`, `access_token`, `refresh_token`) and placeholders (`project_id`, `task_id`, `comment_id`) to share variables dynamically across API calls.
+
+### How to Use the Postman Suite
+1. **Start the API server locally**:
+   ```bash
+   npm run dev
+   ```
+2. **Import files into Postman**:
+   * Click **Import** in Postman and select both `postman_collection.json` and `postman_environment.json`.
+3. **Select the Environment**:
+   * In the top-right corner of Postman, switch the active environment from *No Environment* to **"Task API - Local Environment"**. This activates the `{{base_url}}` variable.
+4. **Execute requests sequentially**:
+   * Run **Register User** or **Login User**. Postman will automatically set the `{{access_token}}` and `{{refresh_token}}` variables behind the scenes.
+   * Run **Create Project** then **Create Task**. Postman will capture their IDs automatically, letting you query, update, or delete them instantly without manual copying.
 
 ---
 
