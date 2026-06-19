@@ -14,11 +14,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/",
-              "host": ["{{base_url}}"],
-              "path": [""]
-            }
+            "url": "{{base_url}}/"
           },
           "response": [],
           "event": [
@@ -45,11 +41,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/health",
-              "host": ["{{base_url}}"],
-              "path": ["health"]
-            }
+            "url": "{{base_url}}/health"
           },
           "response": [],
           "event": [
@@ -91,11 +83,7 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "register"]
-            }
+            "url": "{{base_url}}/api/v1/auth/register"
           },
           "response": [],
           "event": [
@@ -135,11 +123,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
-            }
+            "url": "{{base_url}}/api/v1/auth/login"
           },
           "response": [],
           "event": [
@@ -179,11 +163,7 @@
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/refresh",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "refresh"]
-            }
+            "url": "{{base_url}}/api/v1/auth/refresh"
           },
           "response": [],
           "event": [
@@ -219,11 +199,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "me"]
-            }
+            "url": "{{base_url}}/api/v1/auth/me"
           },
           "response": [],
           "event": [
@@ -260,11 +236,7 @@
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/logout",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "logout"]
-            }
+            "url": "{{base_url}}/api/v1/auth/logout"
           },
           "response": [],
           "event": [
@@ -310,11 +282,7 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"New Project\",\n  \"description\": \"Project tracking system description\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects"]
-            }
+            "url": "{{base_url}}/api/v1/projects"
           },
           "response": [],
           "event": [
@@ -348,17 +316,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects?page=1&limit=10&sortBy=name&sortOrder=asc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "sortBy", "value": "name" },
-                { "key": "sortOrder", "value": "asc" }
-              ]
-            }
+            "url": "{{base_url}}/api/v1/projects?page=1&limit=10&sortBy=name&sortOrder=asc"
           },
           "response": [],
           "event": [
@@ -392,11 +350,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/projects/{{project_id}}"
           },
           "response": [],
           "event": [
@@ -438,11 +392,7 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"Updated project description\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/projects/{{project_id}}"
           },
           "response": [],
           "event": [
@@ -475,11 +425,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/projects/{{project_id}}"
           },
           "response": [],
           "event": [
@@ -526,11 +472,7 @@
               "mode": "raw",
               "raw": "{\n  \"title\": \"Implement JWT flow\",\n  \"description\": \"Integrate access tokens & refresh rotation\",\n  \"projectId\": \"{{project_id}}\",\n  \"priority\": \"HIGH\",\n  \"status\": \"TODO\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks"]
-            }
+            "url": "{{base_url}}/api/v1/tasks"
           },
           "response": [],
           "event": [
@@ -564,19 +506,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks?page=1&limit=10&status=TODO&priority=HIGH&sortBy=createdAt&sortOrder=desc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "status", "value": "TODO" },
-                { "key": "priority", "value": "HIGH" },
-                { "key": "sortBy", "value": "createdAt" },
-                { "key": "sortOrder", "value": "desc" }
-              ]
-            }
+            "url": "{{base_url}}/api/v1/tasks?page=1&limit=10&status=TODO&priority=HIGH&sortBy=createdAt&sortOrder=desc"
           },
           "response": [],
           "event": [
@@ -609,11 +539,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}"
           },
           "response": [],
           "event": [
@@ -655,11 +581,7 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"DONE\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}"
           },
           "response": [],
           "event": [
@@ -693,17 +615,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}/audit?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}", "audit"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "sortBy", "value": "createdAt" },
-                { "key": "sortOrder", "value": "desc" }
-              ]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}/audit?page=1&limit=10&sortBy=createdAt&sortOrder=desc"
           },
           "response": [],
           "event": [
@@ -736,11 +648,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}"
           },
           "response": [],
           "event": [
@@ -787,11 +695,7 @@
               "mode": "raw",
               "raw": "{\n  \"content\": \"Implementation complete and verified!\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}/comments",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}", "comments"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}/comments"
           },
           "response": [],
           "event": [
@@ -825,17 +729,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}/comments?page=1&limit=20&sortBy=createdAt&sortOrder=asc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}", "comments"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "sortBy", "value": "createdAt" },
-                { "key": "sortOrder", "value": "asc" }
-              ]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}/comments?page=1&limit=20&sortBy=createdAt&sortOrder=asc"
           },
           "response": [],
           "event": [
@@ -877,11 +771,7 @@
               "mode": "raw",
               "raw": "{\n  \"content\": \"Revised content for verification check.\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}/comments/{{comment_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}", "comments", "{{comment_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}/comments/{{comment_id}}"
           },
           "response": [],
           "event": [
@@ -914,11 +804,7 @@
                 "type": "text"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}/comments/{{comment_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{task_id}}", "comments", "{{comment_id}}"]
-            }
+            "url": "{{base_url}}/api/v1/tasks/{{task_id}}/comments/{{comment_id}}"
           },
           "response": [],
           "event": [
