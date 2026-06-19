@@ -51,3 +51,16 @@ export const listTasksSchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).optional().default(10),
   }),
 });
+
+// GET /api/v1/tasks/:id/audit (with pagination and sorting)
+export const listAuditLogsSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+    sortBy: z.enum(['createdAt', 'oldStatus', 'newStatus', 'timestamp']).optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+  }),
+  params: z.object({
+    id: z.string().uuid('Invalid task ID'),
+  }),
+});

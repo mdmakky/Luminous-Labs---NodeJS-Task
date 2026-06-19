@@ -35,6 +35,7 @@ model User {
   role          Role      @default(MEMBER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   assignedTasks Task[]         @relation("TaskAssignee")
   createdTasks  Task[]         @relation("TaskCreator")
@@ -124,6 +125,9 @@ model AuditLog {
   oldStatus TaskStatus
   newStatus TaskStatus
   timestamp DateTime   @default(now())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
 
   @@index([taskId])
   @@map("audit_logs")

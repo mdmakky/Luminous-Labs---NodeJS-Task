@@ -9,6 +9,7 @@ import {
   createTaskSchema,
   updateTaskSchema,
   listTasksSchema,
+  listAuditLogsSchema,
 } from '../validations/task.validation.js';
 
 const router = Router();
@@ -33,6 +34,6 @@ router.patch('/:id', validate(updateTaskSchema), taskController.updateTask);
 router.delete('/:id', requireCanDeleteTask, taskController.deleteTask);
 
 // Audit trail — accessible to anyone who has access to the task
-router.get('/:id/audit', auditLogController.getAuditLog);
+router.get('/:id/audit', validate(listAuditLogsSchema), auditLogController.getAuditLog);
 
 export default router;
