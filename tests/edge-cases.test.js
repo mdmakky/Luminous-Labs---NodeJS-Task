@@ -73,9 +73,7 @@ describe('Edge Case & Session Boundaries Tests', () => {
         },
       });
 
-      const res = await request(app)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: token });
+      const res = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: token });
 
       expect(res.status).toBe(401);
       expect(res.body.error.message).toContain('Refresh token has expired');
@@ -122,6 +120,93 @@ describe('Edge Case & Session Boundaries Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.pagination.limit).toBe(100);
       expect(res.body.pagination.page).toBe(1);
+    });
+  });
+
+  describe('Entity Service Error Handling Edge Cases', () => {
+    let adminHeader;
+
+    beforeEach(async () => {
+      const admin = await createTestUser({
+        name: 'Ghost Admin',
+        email: 'ghost_admin@test.com',
+        password: 'Password@123',
+        role: 'ADMIN',
+      });
+      adminHeader = getAuthHeader(admin);
+    });
+
+    it('should return 404 when trying to update a non-existent comment', async () => {
+      const nonExistentCommentId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .patch(
+          `/api/v1/tasks/d9e2b17f-0b44-42b7-84ad-e343bf8ff4e2/comments/${nonExistentCommentId}`,
+        )
+        .set('Authorization', adminHeader)
+        .send({ content: 'Updating ghost comment' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Comment not found');
+    });
+
+    it('should return 404 when trying to delete a non-existent comment', async () => {
+      const nonExistentCommentId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .delete(
+          `/api/v1/tasks/d9e2b17f-0b44-42b7-84ad-e343bf8ff4e2/comments/${nonExistentCommentId}`,
+        )
+        .set('Authorization', adminHeader);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Comment not found');
+    });
+
+    it('should return 404 when trying to update a non-existent project', async () => {
+      const nonExistentProjectId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .patch(`/api/v1/projects/${nonExistentProjectId}`)
+        .set('Authorization', adminHeader)
+        .send({ name: 'Updating ghost project' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Project not found');
+    });
+
+    it('should return 404 when trying to delete a non-existent project', async () => {
+      const nonExistentProjectId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .delete(`/api/v1/projects/${nonExistentProjectId}`)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Project not found');
+    });
+
+    it('should return 404 when trying to update a non-existent task', async () => {
+      const nonExistentTaskId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .patch(`/api/v1/tasks/${nonExistentTaskId}`)
+        .set('Authorization', adminHeader)
+        .send({ title: 'Updating ghost task' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Task not found');
+    });
+
+    it('should return 404 when trying to delete a non-existent task', async () => {
+      const nonExistentTaskId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${nonExistentTaskId}`)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Task not found');
     });
   });
 });

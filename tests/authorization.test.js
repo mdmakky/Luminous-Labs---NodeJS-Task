@@ -290,5 +290,107 @@ describe('Authorization & Multi-Tenancy Boundary Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.content).toBe('Edited by admin');
     });
+
+    it('should allow ADMIN to delete any comment', async () => {
+      const comment = await prisma.taskComment.create({
+        data: { content: 'User comment', authorId: memberA.id, taskId: taskA.id },
+      });
+
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${taskA.id}/comments/${comment.id}`)
+        .set('Authorization', adminHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.message).toContain('Comment deleted successfully');
+    });
+  });
+
+  describe('RBAC Middleware & Endpoint Interception Controls', () => {
+    it('should block MEMBER from creating projects', async () => {
+      const res = await request(app)
+        .post('/api/v1/projects')
+        .set('Authorization', memberAHeader)
+        .send({ name: 'Member Project' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Members are not allowed to manage projects');
+    });
+
+    it('should block MEMBER from updating projects', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/projects/${projectA.id}`)
+        .set('Authorization', memberAHeader)
+        .send({ name: 'Member Update Attempt' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Members are not allowed to manage projects');
+    });
+
+    it('should block MEMBER from deleting projects', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/projects/${projectA.id}`)
+        .set('Authorization', memberAHeader);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Members are not allowed to manage projects');
+    });
+
+    it('should block MEMBER from creating tasks', async () => {
+      const res = await request(app)
+        .post('/api/v1/tasks')
+        .set('Authorization', memberAHeader)
+        .send({ title: 'Member Task', projectId: projectA.id });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Members are not allowed to create tasks');
+    });
+
+    it('should block MEMBER from deleting tasks', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${taskA.id}`)
+        .set('Authorization', memberAHeader);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Members are not allowed to delete tasks');
+    });
+
+    it('should block MANAGER from creating tasks in projects they do not own', async () => {
+      const res = await request(app)
+        .post('/api/v1/tasks')
+        .set('Authorization', managerAHeader)
+        .send({ title: 'Task in project B', projectId: projectB.id });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('You can only create tasks in your own projects');
+    });
+
+    it('should block MEMBER A from updating a task not assigned to them', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/tasks/${taskB.id}`)
+        .set('Authorization', memberAHeader)
+        .send({ status: 'IN_PROGRESS' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('You can only update tasks assigned to you');
+    });
+
+    it('should block MEMBER A from reassigning task assigned to them', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/tasks/${taskA.id}`)
+        .set('Authorization', memberAHeader)
+        .send({ assigneeId: memberB.id });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('You are not allowed to reassign tasks');
+    });
   });
 });

@@ -32,7 +32,12 @@ router.post('/', requireCanCreateTask, validate(createTaskSchema), taskControlle
 router.patch('/:id', validate(updateTaskSchema), taskController.updateTask);
 
 // Only ADMIN and MANAGER can delete tasks
-router.delete('/:id', requireCanDeleteTask, validate(getOrDeleteTaskSchema), taskController.deleteTask);
+router.delete(
+  '/:id',
+  requireCanDeleteTask,
+  validate(getOrDeleteTaskSchema),
+  taskController.deleteTask,
+);
 
 // Audit trail — accessible to anyone who has access to the task
 router.get('/:id/audit', validate(listAuditLogsSchema), auditLogController.getAuditLog);

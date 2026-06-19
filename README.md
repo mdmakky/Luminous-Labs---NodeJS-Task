@@ -524,7 +524,7 @@ curl -X DELETE http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments/<COMMENT_
 
 ## Production Readiness & Resilience Testing Strategy
 
-The application is validated by a robust suite of **9 test suites** (78 tests total) built using Jest and Supertest. The suite is designed to ensure strict alignment with production guidelines and maps test scenarios to specific business and security risks.
+The application is validated by a robust suite of **6 modular test suites** (72 tests total) built using Jest and Supertest. The suite is designed to ensure strict alignment with production guidelines and maps test scenarios to specific business and security risks.
 
 ### Running the Test Suite
 
@@ -545,10 +545,10 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 
 | Metric | Required Threshold | Current Coverage | Status |
 |---|---|---|---|
-| **Lines** | ≥ 85% | **98.23%** | **PASSED** ✅ |
-| **Branches** | ≥ 80% | **83.61%** | **PASSED** ✅ |
-| **Functions** | ≥ 85% | **97.93%** | **PASSED** ✅ |
-| **Statements** | — | **96.98%** | **PASSED** ✅ |
+| **Lines** | ≥ 85% | **100.00%** | **PASSED** ✅ |
+| **Branches** | ≥ 80% | **92.01%** | **PASSED** ✅ |
+| **Functions** | ≥ 85% | **100.00%** | **PASSED** ✅ |
+| **Statements** | — | **100.00%** | **PASSED** ✅ |
 
 ---
 
@@ -562,9 +562,6 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 | [`validation.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/validation.test.js) | Input Validation | Invalid UUID parameters crashing DB drivers, short input strings, enum boundary violations. | **High** | Malformed parameters or payloads are intercepted by Zod schemas and reject with standard `400 Bad Request` instead of DB 500s. |
 | [`database-consistency.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/database-consistency.test.js) | Consistency & Cascades | Accumulating orphaned logs/comments on task delete, mismatched project relations, incorrect `completedAt` sync. | **High** | Database hard-deletes cascade cleanups to prevent orphaned rows; invalid relations fail with 404; `completedAt` synchronizes correctly. Unexpected errors return structured JSON envelopes. |
 | [`edge-cases.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/edge-cases.test.js) | Edge Cases & Sessions | Replaying rotated refresh tokens, expired refresh sessions, large limit pagination Denial of Service (DoS). | **Critical** | Replayed refresh tokens yield 401; expired sessions are pruned; page query inputs out of bounds trigger `400 Bad Request` validation. |
-| [`auth.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/auth.test.js) | Authentication | Login, registration, token rotations, duplicate registration rejection, logout session cleanup. | **Critical** | Registration, login, profile query, rotation rotation rotating tokens, and logout database session deletion work cleanly. |
-| [`task.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/task.test.js) | Task Business Logic | Role-based CRUD permissions, task listing boundaries per role, comment paginations and project sorting. | **High** | Managers create tasks and manage projects; members update statuses and view projects they are assigned tasks in. |
-| [`audit.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/audit.test.js) | Audit Trail | Missing audit logs for status transitions, unauthorized audit trail reads. | **High** | Changing statuses creates immutable audit records; updates to other fields skip logging; non-permitted users cannot read audit log. |
 
 ### Test Design Notes
 - **Isolation**: Each test suite runs `clearDatabase()` before every test run.

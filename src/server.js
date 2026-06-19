@@ -9,7 +9,7 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📋 Health check: http://localhost:${PORT}/health`);
   console.log(`🌍 Environment: ${env.NODE_ENV}`);
-  
+
   // Non-blocking cleanup of expired refresh tokens on startup
   cleanupExpiredTokens();
 });

@@ -13,7 +13,9 @@ export const cleanupExpiredTokens = async () => {
         },
       },
     });
-    console.log(`[Token Cleanup] Expired refresh tokens cleaned up. Deleted count: ${result.count}`);
+    console.log(
+      `[Token Cleanup] Expired refresh tokens cleaned up. Deleted count: ${result.count}`,
+    );
   } catch (error) {
     console.error('[Token Cleanup] Error cleaning up expired tokens:', error);
   }

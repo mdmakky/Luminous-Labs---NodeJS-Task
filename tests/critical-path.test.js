@@ -72,10 +72,16 @@ describe('Critical-Path Tests', () => {
     const taskId = taskRes.body.data.id;
     expect(taskId).toBeDefined();
 
+    // 2B. Update task title (status is undefined) to cover repository branch
+    const titleUpdateRes = await request(app)
+      .patch(`/api/v1/tasks/${taskId}`)
+      .set('Authorization', managerHeader)
+      .send({ title: 'Updated Core Task Title' });
+    expect(titleUpdateRes.status).toBe(200);
+    expect(titleUpdateRes.body.data.title).toBe('Updated Core Task Title');
+
     // 3. MEMBER lists tasks (should see only the assigned task)
-    const listRes = await request(app)
-      .get('/api/v1/tasks')
-      .set('Authorization', memberHeader);
+    const listRes = await request(app).get('/api/v1/tasks').set('Authorization', memberHeader);
     expect(listRes.status).toBe(200);
     expect(listRes.body.success).toBe(true);
     expect(listRes.body.data.length).toBe(1);
@@ -108,6 +114,102 @@ describe('Critical-Path Tests', () => {
     expect(getRes.body.data.status).toBe('DONE');
     expect(getRes.body.data.completedAt).toBe(completedAtStr);
 
+    // --- Added Coverage: List Projects, Comments, Audit Logs, and session lifecycle ---
+
+    // A. List projects as manager, admin, and member
+    const pmProjList = await request(app)
+      .get('/api/v1/projects')
+      .set('Authorization', managerHeader)
+      .query({ page: 1, limit: 5, sortBy: 'name', sortOrder: 'asc' });
+    expect(pmProjList.status).toBe(200);
+    expect(pmProjList.body.data.length).toBe(1);
+
+    const memberProjList = await request(app)
+      .get('/api/v1/projects')
+      .set('Authorization', memberHeader);
+    expect(memberProjList.status).toBe(200);
+    expect(memberProjList.body.data.length).toBe(1); // Member has task in project
+
+    const adminProjList = await request(app)
+      .get('/api/v1/projects')
+      .set('Authorization', adminHeader);
+    expect(adminProjList.status).toBe(200);
+
+    // B. Create task comment as MEMBER
+    const commentRes = await request(app)
+      .post(`/api/v1/tasks/${taskId}/comments`)
+      .set('Authorization', memberHeader)
+      .send({ content: 'Task completed successfully' });
+    expect(commentRes.status).toBe(201);
+    expect(commentRes.body.data.content).toBe('Task completed successfully');
+
+    // C. List comments on the task (with pagination & sorting)
+    const commentsList = await request(app)
+      .get(`/api/v1/tasks/${taskId}/comments`)
+      .set('Authorization', memberHeader)
+      .query({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'asc' });
+    expect(commentsList.status).toBe(200);
+    expect(commentsList.body.data.length).toBe(1);
+    expect(commentsList.body.pagination.totalCount).toBe(1);
+
+    // D. List tasks with query parameters (filters, pagination, sorting)
+    const filteredTasks = await request(app)
+      .get('/api/v1/tasks')
+      .set('Authorization', adminHeader)
+      .query({
+        status: 'DONE',
+        priority: 'HIGH',
+        assigneeId: member.id,
+        projectId,
+        sortBy: 'dueDate',
+        sortOrder: 'desc',
+        page: 1,
+        limit: 10,
+      });
+    expect(filteredTasks.status).toBe(200);
+    expect(filteredTasks.body.data.length).toBe(1);
+
+    // E. Retrieve audit trail for the task (with pagination & sorting)
+    const auditLogs = await request(app)
+      .get(`/api/v1/tasks/${taskId}/audit`)
+      .set('Authorization', managerHeader)
+      .query({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' });
+    expect(auditLogs.status).toBe(200);
+    expect(auditLogs.body.data.length).toBe(2); // Two transitions: TODO -> IN_PROGRESS -> DONE
+
+    // E2. Retrieve audit trail without any query parameters to cover defaults
+    const defaultAuditLogs = await request(app)
+      .get(`/api/v1/tasks/${taskId}/audit`)
+      .set('Authorization', managerHeader);
+    expect(defaultAuditLogs.status).toBe(200);
+    expect(defaultAuditLogs.body.data.length).toBe(2);
+
+    // F. Auth refresh rotation & logout flow E2E
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: member.email, password: 'Password@123' });
+    expect(loginRes.status).toBe(200);
+    const { accessToken, refreshToken } = loginRes.body.data;
+
+    // Refresh rotation
+    const refreshRes = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    expect(refreshRes.status).toBe(200);
+    const newRefreshToken = refreshRes.body.data.refreshToken;
+
+    // Logout
+    const logoutRes = await request(app)
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: newRefreshToken });
+    expect(logoutRes.status).toBe(200);
+
+    // Profile me
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(meRes.status).toBe(200);
+
+    // --- End of Added Coverage ---
+
     // 7. MANAGER soft-deletes the task
     const deleteRes = await request(app)
       .delete(`/api/v1/tasks/${taskId}`)
@@ -116,11 +218,9 @@ describe('Critical-Path Tests', () => {
     expect(deleteRes.body.success).toBe(true);
 
     // 8. Verify the task is no longer returned in general listings for manager
-    const pmListRes = await request(app)
-      .get('/api/v1/tasks')
-      .set('Authorization', managerHeader);
+    const pmListRes = await request(app).get('/api/v1/tasks').set('Authorization', managerHeader);
     expect(pmListRes.status).toBe(200);
-    const visibleTasks = pmListRes.body.data.filter(t => t.id === taskId);
+    const visibleTasks = pmListRes.body.data.filter((t) => t.id === taskId);
     expect(visibleTasks.length).toBe(0);
 
     // 9. Verify the task still exists in the DB with soft-deleted audit fields

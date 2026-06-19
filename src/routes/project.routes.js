@@ -32,6 +32,11 @@ router.patch(
   validate(updateProjectSchema),
   projectController.updateProject,
 );
-router.delete('/:id', requireCanManageProject, validate(getOrDeleteProjectSchema), projectController.deleteProject);
+router.delete(
+  '/:id',
+  requireCanManageProject,
+  validate(getOrDeleteProjectSchema),
+  projectController.deleteProject,
+);
 
 export default router;

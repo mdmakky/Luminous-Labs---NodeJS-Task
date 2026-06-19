@@ -81,13 +81,10 @@ describe('Database Consistency & Integrity Tests', () => {
     it('should block task creation if the referenced projectId does not exist in DB', async () => {
       const nonExistentProjectId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
 
-      const res = await request(app)
-        .post('/api/v1/tasks')
-        .set('Authorization', adminHeader)
-        .send({
-          title: 'Orphaned Task',
-          projectId: nonExistentProjectId,
-        });
+      const res = await request(app).post('/api/v1/tasks').set('Authorization', adminHeader).send({
+        title: 'Orphaned Task',
+        projectId: nonExistentProjectId,
+      });
 
       // Returns 404 (Project not found / NotFoundError) or a database relation error
       expect(res.status).toBe(404);
@@ -112,18 +109,16 @@ describe('Database Consistency & Integrity Tests', () => {
         .set('Authorization', adminHeader);
 
       // List projects
-      const listRes = await request(app)
-        .get('/api/v1/projects')
-        .set('Authorization', adminHeader);
-      
-      const found = listRes.body.data.find(p => p.id === projectToDelete.id);
+      const listRes = await request(app).get('/api/v1/projects').set('Authorization', adminHeader);
+
+      const found = listRes.body.data.find((p) => p.id === projectToDelete.id);
       expect(found).toBeUndefined();
 
       // Retrieve by ID directly
       const getRes = await request(app)
         .get(`/api/v1/projects/${projectToDelete.id}`)
         .set('Authorization', adminHeader);
-      
+
       expect(getRes.status).toBe(404);
     });
   });
@@ -146,7 +141,7 @@ describe('Database Consistency & Integrity Tests', () => {
         .patch(`/api/v1/tasks/${task.id}`)
         .set('Authorization', adminHeader)
         .send({ status: 'DONE' });
-      
+
       expect(doneRes.body.data.status).toBe('DONE');
       expect(doneRes.body.data.completedAt).not.toBeNull();
 
@@ -155,7 +150,7 @@ describe('Database Consistency & Integrity Tests', () => {
         .patch(`/api/v1/tasks/${task.id}`)
         .set('Authorization', adminHeader)
         .send({ status: 'IN_REVIEW' });
-      
+
       expect(reviewRes.body.data.status).toBe('IN_REVIEW');
       expect(reviewRes.body.data.completedAt).toBeNull();
     });
@@ -219,17 +214,17 @@ describe('Database Consistency & Integrity Tests', () => {
     });
 
     it('should format unexpected errors correctly depending on NODE_ENV', async () => {
-      const spy = jest.spyOn(prisma.project, 'findMany').mockRejectedValue(new Error('Simulated Database Crash'));
+      const spy = jest
+        .spyOn(prisma.project, 'findMany')
+        .mockRejectedValue(new Error('Simulated Database Crash'));
 
       const originalEnv = process.env.NODE_ENV;
 
       // 1. Test in 'development' mode (should call console.error)
       process.env.NODE_ENV = 'development';
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const devRes = await request(app)
-        .get('/api/v1/projects')
-        .set('Authorization', adminHeader);
-      
+      const devRes = await request(app).get('/api/v1/projects').set('Authorization', adminHeader);
+
       expect(devRes.status).toBe(500);
       expect(devRes.body.error.message).toBe('Simulated Database Crash');
       expect(consoleSpy).toHaveBeenCalled();
@@ -237,9 +232,7 @@ describe('Database Consistency & Integrity Tests', () => {
 
       // 2. Test in 'production' mode (should map message to 'Internal server error')
       process.env.NODE_ENV = 'production';
-      const prodRes = await request(app)
-        .get('/api/v1/projects')
-        .set('Authorization', adminHeader);
+      const prodRes = await request(app).get('/api/v1/projects').set('Authorization', adminHeader);
 
       expect(prodRes.status).toBe(500);
       expect(prodRes.body.error.message).toBe('Internal server error');
@@ -247,6 +240,41 @@ describe('Database Consistency & Integrity Tests', () => {
       // Restore environment and mocks
       process.env.NODE_ENV = originalEnv;
       spy.mockRestore();
+    });
+
+    it('should cover projectRepo.findAll and taskRepo.findAll default options branches', async () => {
+      const projectRepo = await import('../src/repositories/project.repository.js');
+      const taskRepo = await import('../src/repositories/task.repository.js');
+
+      const projectRes = await projectRepo.findAll();
+      expect(projectRes.projects).toBeDefined();
+
+      const taskRes = await taskRepo.findAll();
+      expect(taskRes.tasks).toBeDefined();
+    });
+
+    it('should cover refresh token repository deleteByUserId', async () => {
+      const refreshTokenRepo = await import('../src/repositories/refresh-token.repository.js');
+      await refreshTokenRepo.deleteByUserId(member.id);
+    });
+
+    it('should cover user repository softDelete function', async () => {
+      const userRepo = await import('../src/repositories/user.repository.js');
+      const tempUser = await userRepo.create({
+        name: 'Temp User',
+        email: 'temp-soft-delete@test.com',
+        passwordHash: 'somehash',
+        role: 'MEMBER',
+      });
+      const deletedUser = await userRepo.softDelete(tempUser.id);
+      expect(deletedUser.deletedAt).not.toBeNull();
+    });
+
+    it('should cover audit log service getAuditLog with default parameters', async () => {
+      const auditLogService = await import('../src/services/audit-log.service.js');
+      const res = await auditLogService.getAuditLog('d9e2b17f-0b44-42b7-84ad-000000000000');
+      expect(res.logs).toEqual([]);
+      expect(res.totalCount).toBe(0);
     });
   });
 });

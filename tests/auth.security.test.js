@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import { jest } from '@jest/globals';
 import app from '../src/app.js';
 import { clearDatabase } from './helpers/db.helper.js';
+import env from '../src/config/env.js';
+import prisma from '../src/config/prisma.js';
+import { createTestUser, getAuthHeader } from './helpers/auth.helper.js';
 
 describe('Auth Security Tests', () => {
   beforeEach(async () => {
@@ -42,7 +45,7 @@ describe('Auth Security Tests', () => {
       const forgedToken = jwt.sign(
         { userId: 'some-user-uuid', email: 'intruder@test.com', role: 'ADMIN' },
         'WRONG_JWT_SECRET',
-        { expiresIn: '15m' }
+        { expiresIn: '15m' },
       );
 
       const res = await request(app)
@@ -79,9 +82,7 @@ describe('Auth Security Tests', () => {
         role: 'ADMIN', // Attempted mass assignment
       };
 
-      const res = await request(app)
-        .post('/api/v1/auth/register')
-        .send(payload);
+      const res = await request(app).post('/api/v1/auth/register').send(payload);
 
       expect(res.status).toBe(201);
       expect(res.body.data.user.role).toBe('MEMBER');
@@ -90,7 +91,7 @@ describe('Auth Security Tests', () => {
       const meRes = await request(app)
         .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${res.body.data.accessToken}`);
-      
+
       expect(meRes.status).toBe(200);
       expect(meRes.body.data.role).toBe('MEMBER');
     });
@@ -124,9 +125,7 @@ describe('Auth Security Tests', () => {
       // Limit is 5. Request 6 times.
       let lastRes;
       for (let i = 0; i < 6; i++) {
-        lastRes = await request(app)
-          .post('/api/v1/auth/login')
-          .send(payload);
+        lastRes = await request(app).post('/api/v1/auth/login').send(payload);
       }
 
       expect(lastRes.status).toBe(429);
@@ -135,8 +134,9 @@ describe('Auth Security Tests', () => {
     });
 
     it('should cover skip conditions for rate limiters', async () => {
-      const { authRateLimiter, generalRateLimiter } = await import('../src/middleware/rate-limit.middleware.js');
-      
+      const { authRateLimiter, generalRateLimiter } =
+        await import('../src/middleware/rate-limit.middleware.js');
+
       const originalEnv = process.env.NODE_ENV;
 
       const mockReq = (path, ip = '127.0.0.1') => ({
@@ -151,7 +151,9 @@ describe('Auth Security Tests', () => {
       const mockRes = {
         setHeader: () => {},
         setHeaders: () => {},
-        status: function() { return this; },
+        status: function () {
+          return this;
+        },
         send: () => {},
         json: () => {},
       };
@@ -198,6 +200,120 @@ describe('Auth Security Tests', () => {
       middleware(req, {}, next);
       expect(next).toHaveBeenCalledWith(expect.any(Error));
       expect(next.mock.calls[0][0].statusCode).toBe(401);
+    });
+
+    it('should cover rbac requireRole middleware when role does not match', async () => {
+      const { requireRole } = await import('../src/middleware/rbac.middleware.js');
+      const middleware = requireRole('ADMIN', 'MANAGER');
+      const req = { user: { role: 'MEMBER' } };
+      const next = jest.fn();
+
+      middleware(req, {}, next);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
+      expect(next.mock.calls[0][0].statusCode).toBe(403);
+    });
+
+    it('should cover rbac requireRole middleware when role matches', async () => {
+      const { requireRole } = await import('../src/middleware/rbac.middleware.js');
+      const middleware = requireRole('ADMIN', 'MANAGER');
+      const req = { user: { role: 'MANAGER' } };
+      const next = jest.fn();
+
+      middleware(req, {}, next);
+      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenLastCalledWith(expect.any(Error));
+    });
+
+    it('should cover rbac requireCanCreateTask, requireCanDeleteTask, requireCanManageProject with undefined user', async () => {
+      const { requireCanCreateTask, requireCanDeleteTask, requireCanManageProject } =
+        await import('../src/middleware/rbac.middleware.js');
+      const req = {}; // no req.user
+      const next = jest.fn();
+
+      requireCanCreateTask(req, {}, next);
+      requireCanDeleteTask(req, {}, next);
+      requireCanManageProject(req, {}, next);
+      expect(next).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('Authentication Service Edge Conditions', () => {
+    it('should reject registration of duplicate emails (409 Conflict)', async () => {
+      const payload = {
+        name: 'First User',
+        email: 'duplicate@test.com',
+        password: 'Password@123',
+      };
+
+      // First registration
+      await request(app).post('/api/v1/auth/register').send(payload);
+
+      // Second registration with same email
+      const res = await request(app).post('/api/v1/auth/register').send(payload);
+      expect(res.status).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Email already registered');
+    });
+
+    it('should reject login with wrong password for an existing user (401 Unauthorized)', async () => {
+      const email = 'existing-user@test.com';
+      await request(app).post('/api/v1/auth/register').send({
+        name: 'Existing User',
+        email,
+        password: 'Password@123',
+      });
+
+      const res = await request(app).post('/api/v1/auth/login').send({
+        email,
+        password: 'WrongPassword@123',
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('Invalid email or password');
+    });
+
+    it('should reject profile query for a user that does not exist in the database (401 Unauthorized)', async () => {
+      const nonExistentUserId = 'd9e2b17f-0b44-42b7-84ad-000000000000';
+      const token = jwt.sign(
+        { userId: nonExistentUserId, email: 'nonexistent@test.com', role: 'MEMBER' },
+        env.JWT_SECRET,
+        { expiresIn: '15m' },
+      );
+
+      const res = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('User not found');
+    });
+
+    it('should reject token refresh if the associated user has been deleted (401)', async () => {
+      // 1. Create a user
+      const user = await createTestUser({
+        name: 'Soon To Be Deleted',
+        email: 'deleted-user@test.com',
+        password: 'Password@123',
+        role: 'MEMBER',
+      });
+
+      // 2. Log in to get a refresh token
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'deleted-user@test.com', password: 'Password@123' });
+
+      const { refreshToken } = loginRes.body.data;
+
+      // 3. Soft-delete the user
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { deletedAt: new Date() },
+      });
+
+      // 4. Try to refresh the token
+      const res = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.message).toContain('User not found');
     });
   });
 });

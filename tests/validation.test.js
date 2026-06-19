@@ -63,13 +63,10 @@ describe('Validation & Boundary Tests', () => {
     });
 
     it('should block task creation when title is missing', async () => {
-      const res = await request(app)
-        .post('/api/v1/tasks')
-        .set('Authorization', userHeader)
-        .send({
-          description: 'No title task',
-          projectId: 'd9e2b17f-0b44-42b7-84ad-e343bf8ff4e2',
-        });
+      const res = await request(app).post('/api/v1/tasks').set('Authorization', userHeader).send({
+        description: 'No title task',
+        projectId: 'd9e2b17f-0b44-42b7-84ad-e343bf8ff4e2',
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -83,14 +80,11 @@ describe('Validation & Boundary Tests', () => {
    */
   describe('Strict Enum Boundaries Checks', () => {
     it('should reject invalid task status changes during creation', async () => {
-      const res = await request(app)
-        .post('/api/v1/tasks')
-        .set('Authorization', userHeader)
-        .send({
-          title: 'Invalid Status Task',
-          projectId: 'd9e2b17f-0b44-42b7-84ad-e343bf8ff4e2',
-          status: 'FINISHED', // FINISHED is not in TaskStatus enum
-        });
+      const res = await request(app).post('/api/v1/tasks').set('Authorization', userHeader).send({
+        title: 'Invalid Status Task',
+        projectId: 'd9e2b17f-0b44-42b7-84ad-e343bf8ff4e2',
+        status: 'FINISHED', // FINISHED is not in TaskStatus enum
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
