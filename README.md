@@ -157,7 +157,8 @@ All responses use the envelope: `{ "success": true/false, "data": ..., "error": 
 # Register
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{ "name": "John", "email": "john@example.com", "password": "Pass@123", "role": "MEMBER" }'
+  -d '{ "name": "John", "email": "john@example.com", "password": "Pass@123" }'
+# Note: all registered users default to MEMBER role (role cannot be self-assigned)
 
 # Login → copy accessToken + refreshToken from response
 curl -X POST http://localhost:3000/api/v1/auth/login \
@@ -244,7 +245,7 @@ Response:
       "id": "...",
       "oldStatus": "TODO",
       "newStatus": "IN_PROGRESS",
-      "timestamp": "2025-06-18T14:30:00.000Z",
+      "createdAt": "2025-06-18T14:30:00.000Z",
       "user": { "name": "Team Member", "email": "member@example.com" }
     }
   ]
@@ -278,12 +279,14 @@ npm test
 
 ```
 Test Suites: 3 passed, 3 total
-Tests:       24 passed, 24 total
+Tests:       32 passed, 32 total
 
 auth.test.js  (9 tests)  — register, login, duplicate email, profile, wrong password,
                            token refresh rotation, logout invalidation
-task.test.js  (11 tests) — admin/manager/member create permissions, list scoping,
-                           member status update, reassign block, delete RBAC
+task.test.js  (19 tests) — admin/manager/member create permissions, list scoping,
+                           member status update, reassign block, delete RBAC,
+                           project filtering/sorting/search, comment pagination,
+                           manager comment delete ACL
 audit.test.js (4 tests)  — status change creates log, non-status update skips log,
                            authorized access, unauthorized blocked (403)
 ```
