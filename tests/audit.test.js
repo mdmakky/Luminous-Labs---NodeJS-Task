@@ -128,4 +128,33 @@ describe('Audit Trail API', () => {
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
   });
+
+  it('should support pagination query parameters for audit logs', async () => {
+    // Add multiple status changes
+    await request(app)
+      .patch(`/api/v1/tasks/${task.id}`)
+      .set('Authorization', member1Header)
+      .send({ status: 'IN_PROGRESS' });
+
+    await request(app)
+      .patch(`/api/v1/tasks/${task.id}`)
+      .set('Authorization', member1Header)
+      .send({ status: 'IN_REVIEW' });
+
+    // Retrieve audit logs with page=1, limit=1
+    const res = await request(app)
+      .get(`/api/v1/tasks/${task.id}/audit`)
+      .set('Authorization', managerHeader)
+      .query({ page: 1, limit: 1, sortBy: 'createdAt', sortOrder: 'asc' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].oldStatus).toBe('TODO');
+    expect(res.body.data[0].newStatus).toBe('IN_PROGRESS');
+    expect(res.body.pagination.totalCount).toBe(2);
+    expect(res.body.pagination.limit).toBe(1);
+    expect(res.body.pagination.page).toBe(1);
+    expect(res.body.pagination.totalPages).toBe(2);
+  });
 });

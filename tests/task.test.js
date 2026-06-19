@@ -156,6 +156,15 @@ describe('Tasks API & RBAC', () => {
       expect(res.body.data.length).toBe(1);
       expect(res.body.data[0].id).toBe(task1.id);
     });
+
+    it('should restrict MANAGER to list tasks only from their own projects', async () => {
+      const res = await request(app).get('/api/v1/tasks').set('Authorization', manager1Header);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].id).toBe(task1.id);
+    });
   });
 
   describe('PATCH /api/v1/tasks/:id (Update Task)', () => {
@@ -250,6 +259,96 @@ describe('Tasks API & RBAC', () => {
       // Verify it was soft deleted
       const check = await prisma.task.findUnique({ where: { id: task.id } });
       expect(check.deletedAt).not.toBeNull();
+    });
+  });
+
+  describe('Projects API - Filtering, Sorting, Pagination, ACL', () => {
+    let project3;
+    beforeEach(async () => {
+      // Create another project for manager2
+      project3 = await prisma.project.create({
+        data: { name: 'Alpha Project', ownerId: manager2.id },
+      });
+      // Add a task in project1 assigned to member1
+      await prisma.task.create({
+        data: { title: 'Assigned to Member1', projectId: project1.id, assigneeId: member1.id, creatorId: manager1.id },
+      });
+    });
+
+    it('should restrict MANAGER to list only projects they own', async () => {
+      const res = await request(app).get('/api/v1/projects').set('Authorization', manager1Header);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].id).toBe(project1.id);
+    });
+
+    it('should allow MEMBER to see projects where they have assigned tasks', async () => {
+      const res = await request(app).get('/api/v1/projects').set('Authorization', member1Header);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].id).toBe(project1.id);
+    });
+
+    it('should support sorting and searching for projects', async () => {
+      const res = await request(app)
+        .get('/api/v1/projects')
+        .set('Authorization', adminHeader)
+        .query({ sortBy: 'name', sortOrder: 'asc', name: 'One' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBe(1); // Only Project One contains "One"
+      expect(res.body.data[0].name).toBe('Project One');
+    });
+  });
+
+  describe('Comments API - Pagination, Sorting, Manager ACL', () => {
+    let task, comment1, comment2;
+    beforeEach(async () => {
+      task = await prisma.task.create({
+        data: { title: 'Comment Task', projectId: project1.id, creatorId: manager1.id },
+      });
+      comment1 = await prisma.taskComment.create({
+        data: { content: 'Comment A', taskId: task.id, authorId: member1.id, createdAt: new Date(Date.now() - 5000) },
+      });
+      comment2 = await prisma.taskComment.create({
+        data: { content: 'Comment B', taskId: task.id, authorId: member2.id },
+      });
+    });
+
+    it('should support comment pagination and sorting', async () => {
+      const res = await request(app)
+        .get(`/api/v1/tasks/${task.id}/comments`)
+        .set('Authorization', manager1Header)
+        .query({ page: 1, limit: 1, sortBy: 'createdAt', sortOrder: 'asc' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].content).toBe('Comment A');
+      expect(res.body.pagination.totalCount).toBe(2);
+    });
+
+    it('should allow MANAGER of the task project to delete comments', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${task.id}/comments/${comment2.id}`)
+        .set('Authorization', manager1Header);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const check = await prisma.taskComment.findUnique({ where: { id: comment2.id } });
+      expect(check.deletedAt).not.toBeNull();
+    });
+
+    it('should block MANAGER of a different project from deleting comments', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${task.id}/comments/${comment1.id}`)
+        .set('Authorization', manager2Header);
+
+      expect(res.status).toBe(403);
     });
   });
 });
