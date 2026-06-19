@@ -19,7 +19,7 @@
 9. [API Reference](#api-reference)
 10. [Testing Strategy & Coverage](#production-readiness--resilience-testing-strategy)
 11. [Postman Setup & Integration](#postman-setup--integration)
-12. [Bonus Features](#bonus-features)
+12. [Production Architecture & Hardening Features](#production-architecture--hardening-features)
 
 ---
 
@@ -560,12 +560,12 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 
 | Test Suite / File | Category | Mitigated Risk | Priority | Expected Outcome |
 |---|---|---|---|---|
-| [`critical-path.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/critical-path.test.js) | Critical-Path | Key task creation, assignment, done status transitions, and soft-delete lifecycle regression. | **Critical** | End-to-end task flows succeed, auto-setting `completedAt` timestamps and correctly hiding deleted tasks while preserving them in database. |
-| [`auth.security.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/auth.security.test.js) | Security & Rate-Limiting | Token signature forgery, endpoint health leaks, role mass-assignment escalation, brute force login attacks. | **Critical** | Forged tokens are rejected (401), registration role overrides are ignored (forces `MEMBER`), health checks return 200, and excessive attempts get blocked with `429`. |
-| [`authorization.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/authorization.test.js) | Access Control (IDOR) | Manager-to-manager cross-project modifications, member task boundaries cross-tenant view/comment/edit/delete. | **Critical** | Resource reads and mutations across unauthorized manager or member scopes return `403 Forbidden`. Admins bypass boundaries safely. |
-| [`validation.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/validation.test.js) | Input Validation | Invalid UUID parameters crashing DB drivers, short input strings, enum boundary violations. | **High** | Malformed parameters or payloads are intercepted by Zod schemas and reject with standard `400 Bad Request` instead of DB 500s. |
-| [`database-consistency.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/database-consistency.test.js) | Consistency & Cascades | Accumulating orphaned logs/comments on task delete, mismatched project relations, incorrect `completedAt` sync. | **High** | Database hard-deletes cascade cleanups to prevent orphaned rows; invalid relations fail with 404; `completedAt` synchronizes correctly. Unexpected errors return structured JSON envelopes. |
-| [`edge-cases.test.js`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/tests/edge-cases.test.js) | Edge Cases & Sessions | Replaying rotated refresh tokens, expired refresh sessions, large limit pagination Denial of Service (DoS). | **Critical** | Replayed refresh tokens yield 401; expired sessions are pruned; page query inputs out of bounds trigger `400 Bad Request` validation. |
+| [`critical-path.test.js`](tests/critical-path.test.js) | Critical-Path | Key task creation, assignment, done status transitions, and soft-delete lifecycle regression. | **Critical** | End-to-end task flows succeed, auto-setting `completedAt` timestamps and correctly hiding deleted tasks while preserving them in database. |
+| [`auth.security.test.js`](tests/auth.security.test.js) | Security & Rate-Limiting | Token signature forgery, endpoint health leaks, role mass-assignment escalation, brute force login attacks. | **Critical** | Forged tokens are rejected (401), registration role overrides are ignored (forces `MEMBER`), health checks return 200, and excessive attempts get blocked with `429`. |
+| [`authorization.test.js`](tests/authorization.test.js) | Access Control (IDOR) | Manager-to-manager cross-project modifications, member task boundaries cross-tenant view/comment/edit/delete. | **Critical** | Resource reads and mutations across unauthorized manager or member scopes return `403 Forbidden`. Admins bypass boundaries safely. |
+| [`validation.test.js`](tests/validation.test.js) | Input Validation | Invalid UUID parameters crashing DB drivers, short input strings, enum boundary violations. | **High** | Malformed parameters or payloads are intercepted by Zod schemas and reject with standard `400 Bad Request` instead of DB 500s. |
+| [`database-consistency.test.js`](tests/database-consistency.test.js) | Consistency & Cascades | Accumulating orphaned logs/comments on task delete, mismatched project relations, incorrect `completedAt` sync. | **High** | Database hard-deletes cascade cleanups to prevent orphaned rows; invalid relations fail with 404; `completedAt` synchronizes correctly. Unexpected errors return structured JSON envelopes. |
+| [`edge-cases.test.js`](tests/edge-cases.test.js) | Edge Cases & Sessions | Replaying rotated refresh tokens, expired refresh sessions, large limit pagination Denial of Service (DoS). | **Critical** | Replayed refresh tokens yield 401; expired sessions are pruned; page query inputs out of bounds trigger `400 Bad Request` validation. |
 
 ### Test Design Notes
 - **Isolation**: Each test suite runs `clearDatabase()` before every test run.
@@ -579,10 +579,10 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 A production-ready Postman collection and environment schema are provided in the root directory to simplify integration testing and dynamic API exploration.
 
 ### Purpose of the Files
-1. **[`postman_collection.json`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/postman_collection.json)**:
+1. **[`postman_collection.json`](postman_collection.json)**:
    * Contains pre-configured requests for all **22 endpoints** organized into folders (System, Auth, Projects, Tasks, Comments).
    * Includes **dynamic Javascript tests** that validate status codes and automatically capture `accessToken` / `refreshToken` / resource IDs from responses, saving them directly into environment variables.
-2. **[`postman_environment.json`](file:///home/musematrix/Desktop/Projects/Luminous-Labs---NodeJS-Task/postman_environment.json)**:
+2. **[`postman_environment.json`](postman_environment.json)**:
    * Holds configuration keys (`base_url`, `access_token`, `refresh_token`) and placeholders (`project_id`, `task_id`, `comment_id`) to share variables dynamically across API calls.
 
 ### How to Use the Postman Suite
@@ -600,22 +600,17 @@ A production-ready Postman collection and environment schema are provided in the
 
 ---
 
-## Bonus Features
+## Production Architecture & Hardening Features
 
-All optional bonus items from the task requirements are implemented:
+The application incorporates key resilience and security features out of the box to guarantee production stability:
 
-| Feature | Implementation |
+| Feature / Control | Description |
 |---|---|
-| **Refresh Token Rotation** | Token hashed with SHA-256; old token deleted on every `/auth/refresh`; replay of old token returns `401` |
-| **Swagger / OpenAPI 3.0** | Full spec in `src/config/swagger.js`; live interactive UI at `/api-docs` with JWT Bearer auth |
-| **Docker** | `Dockerfile` (Node 20 Alpine) + `docker-compose.yml` with PostgreSQL healthcheck |
-| **Soft Delete** | `deletedAt` + `deletedBy` on `Project`, `Task`, `TaskComment`; deleted records excluded from all queries |
-| **Activity Logging for Comments** | `deletedBy` field records who deleted each comment; `completedAt` auto-set on `Task` when status reaches `DONE` |
-
-### Production Hardening (beyond task requirements)
-- **DB connection pool** tuned: `max: 20`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 2000`
-- **Auth rate limiting**: 5 req / 15 min per IP on login and register endpoints
-- **Startup token cleanup**: expired refresh tokens pruned from DB on every server start
-- **Helmet** security headers enabled
-- **GZIP compression** via `compression` middleware
-- **Consistent error exposure**: production mode hides internal error details from clients
+| **Refresh Token Rotation** | Expired refresh tokens are rotated and deleted on `/auth/refresh` with SHA-256 validation; replay attempts reject with `401`. |
+| **API Auto-Documentation** | Comprehensive OpenAPI 3.0 schemas compiled dynamically and exposed interactively via Swagger UI at `/api-docs`. |
+| **Containerization** | Production-ready multi-stage `Dockerfile` and `docker-compose.yml` with built-in PostgreSQL healthcheck parameters. |
+| **Data Soft-Delete** | Task, project, and comment entries respect logical `deletedAt` and `deletedBy` records to prevent state pollution. |
+| **Task Timestamping & Auditing** | `completedAt` values dynamically transition with task statuses; status logs generate immutable audit logs. |
+| **Auth Rate Limiting** | Authentication endpoints are protected against brute-force attacks via sliding-window limiters (5 requests per 15 minutes). |
+| **DB Pool Tuning & Cleanup** | Connection limits managed dynamically (`max: 20`); scheduler prunes expired database sessions non-blockingly at startup. |
+| **Express Security Hardening** | GZIP body compression via `compression`, unified request headers masking via `helmet`, and client-side error stack trace suppression. |
