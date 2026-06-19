@@ -20,3 +20,16 @@ export const updateCommentSchema = z.object({
     id: z.string().uuid('Invalid comment ID'),
   }),
 });
+
+// GET /api/v1/tasks/:taskId/comments
+export const listCommentsSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+    sortBy: z.enum(['createdAt', 'updatedAt']).optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+  }),
+  params: z.object({
+    taskId: z.string().uuid('Invalid task ID'),
+  }),
+});

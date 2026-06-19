@@ -2,11 +2,11 @@ import * as commentRepo from '../repositories/comment.repository.js';
 import * as taskService from './task.service.js';
 import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
-// List all comments on a task
-export const listComments = async (taskId, user) => {
+// List all comments on a task with pagination and sorting
+export const listComments = async (taskId, filters, user) => {
   // Verify task exists and user has access to it
   await taskService.getTask(taskId, user);
-  return commentRepo.findByTaskId(taskId);
+  return commentRepo.findByTaskId(taskId, filters);
 };
 
 // Create a comment

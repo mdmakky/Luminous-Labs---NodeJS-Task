@@ -1,11 +1,29 @@
 import * as commentService from '../services/comment.service.js';
-import { sendSuccess } from '../utils/response.js';
+import { sendSuccess, sendPaginated } from '../utils/response.js';
 import asyncHandler from '../middleware/async-handler.js';
 
 // GET /api/v1/tasks/:taskId/comments
 export const listComments = asyncHandler(async (req, res) => {
-  const comments = await commentService.listComments(req.params.taskId, req.user);
-  sendSuccess(res, comments);
+  const { page, limit, sortBy, sortOrder } = req.query;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
+  const { comments, totalCount } = await commentService.listComments(
+    req.params.taskId,
+    {
+      page: parsedPage,
+      limit: parsedLimit,
+      sortBy: sortBy || 'createdAt',
+      sortOrder: sortOrder || 'asc',
+    },
+    req.user
+  );
+
+  sendPaginated(res, comments, {
+    totalCount,
+    page: parsedPage,
+    limit: parsedLimit,
+  });
 });
 
 // POST /api/v1/tasks/:taskId/comments
