@@ -532,11 +532,14 @@ The application is validated by a robust suite of **6 modular test suites** (72 
 # 1. Run the entire test suite
 npm test
 
-# 2. Run a specific test suite (e.g. auth security)
-npx jest tests/auth.security.test.js
+# 2. Run the tests in verbose mode (shows all individual test cases)
+npm run test:verbose
 
 # 3. Check test coverage metrics
 node --experimental-vm-modules node_modules/.bin/jest --coverage --forceExit --detectOpenHandles
+
+# 4. Run a single specific test file (e.g. auth security)
+npx jest tests/auth.security.test.js
 ```
 
 ### Test Coverage Results
