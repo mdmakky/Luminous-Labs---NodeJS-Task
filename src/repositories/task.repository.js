@@ -60,10 +60,14 @@ export const findById = async (id) => {
   });
 };
 
-// Create a new task
+// Create a new task — sets completedAt if created as DONE
 export const create = async (data) => {
+  const createData = { ...data };
+  if (data.status === 'DONE') {
+    createData.completedAt = new Date();
+  }
   return prisma.task.create({
-    data,
+    data: createData,
     include: {
       assignee: { select: { id: true, name: true, email: true } },
       creator: { select: { id: true, name: true, email: true } },
@@ -72,11 +76,20 @@ export const create = async (data) => {
   });
 };
 
-// Update a task — returns old and new task
+// Update a task — auto-sets completedAt if status changes to DONE, clears it otherwise
 export const update = async (id, data) => {
+  const updateData = { ...data };
+
+  if (data.status === 'DONE') {
+    updateData.completedAt = new Date();
+  } else if (data.status !== undefined) {
+    // Status changed to something other than DONE — clear completedAt
+    updateData.completedAt = null;
+  }
+
   return prisma.task.update({
     where: { id },
-    data,
+    data: updateData,
     include: {
       assignee: { select: { id: true, name: true, email: true } },
       creator: { select: { id: true, name: true, email: true } },
@@ -91,10 +104,10 @@ export const getStatus = async (id) => {
   return task?.status || null;
 };
 
-// Soft delete a task
-export const softDelete = async (id) => {
+// Soft delete a task — records who deleted it
+export const softDelete = async (id, deletedBy) => {
   return prisma.task.update({
     where: { id },
-    data: { deletedAt: new Date() },
+    data: { deletedAt: new Date(), deletedBy },
   });
 };

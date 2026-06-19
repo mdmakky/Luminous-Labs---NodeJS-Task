@@ -59,10 +59,10 @@ export const update = async (id, content) => {
   });
 };
 
-// Soft delete a comment
-export const softDelete = async (id) => {
+// Soft delete a comment — records who deleted it
+export const softDelete = async (id, deletedBy) => {
   return prisma.taskComment.update({
     where: { id },
-    data: { deletedAt: new Date() },
+    data: { deletedAt: new Date(), deletedBy },
   });
 };

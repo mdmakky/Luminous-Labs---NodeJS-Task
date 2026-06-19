@@ -14,14 +14,9 @@ export const getAuditLog = async (
 ) => {
   const skip = (page - 1) * limit;
 
-  const where = {
-    taskId,
-    deletedAt: null,
-  };
-
   const [logs, totalCount] = await Promise.all([
     prisma.auditLog.findMany({
-      where,
+      where: { taskId },
       skip,
       take: limit,
       orderBy: { [sortBy]: sortOrder },
@@ -31,16 +26,8 @@ export const getAuditLog = async (
         },
       },
     }),
-    prisma.auditLog.count({ where }),
+    prisma.auditLog.count({ where: { taskId } }),
   ]);
 
   return { logs, totalCount };
-};
-
-// Soft delete an audit log entry
-export const softDelete = async (id) => {
-  return prisma.auditLog.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
 };

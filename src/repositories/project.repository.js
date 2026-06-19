@@ -77,10 +77,10 @@ export const update = async (id, data) => {
   });
 };
 
-// Soft delete a project
-export const softDelete = async (id) => {
+// Soft delete a project — records who deleted it
+export const softDelete = async (id, deletedBy) => {
   return prisma.project.update({
     where: { id },
-    data: { deletedAt: new Date() },
+    data: { deletedAt: new Date(), deletedBy },
   });
 };

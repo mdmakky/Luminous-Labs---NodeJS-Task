@@ -66,6 +66,7 @@ model Project {
   ownerId     String
   owner       User      @relation("ProjectOwner", fields: [ownerId], references: [id])
   deletedAt   DateTime?
+  deletedBy   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -81,6 +82,7 @@ model Task {
   priority    Priority   @default(MEDIUM)
   status      TaskStatus @default(TODO)
   dueDate     DateTime?
+  completedAt DateTime?
   projectId   String
   project     Project    @relation(fields: [projectId], references: [id])
   assigneeId  String?
@@ -88,6 +90,7 @@ model Task {
   creatorId   String
   creator     User       @relation("TaskCreator", fields: [creatorId], references: [id])
   deletedAt   DateTime?
+  deletedBy   String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -109,6 +112,7 @@ model TaskComment {
   authorId  String
   author    User      @relation(fields: [authorId], references: [id])
   deletedAt DateTime?
+  deletedBy String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -124,10 +128,7 @@ model AuditLog {
   user      User       @relation(fields: [changedBy], references: [id])
   oldStatus TaskStatus
   newStatus TaskStatus
-  timestamp DateTime   @default(now())
   createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
 
   @@index([taskId])
   @@map("audit_logs")

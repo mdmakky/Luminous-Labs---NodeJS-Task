@@ -47,5 +47,5 @@ export const deleteComment = async (id, user) => {
     throw new ForbiddenError('You can only delete your own comments');
   }
 
-  return commentRepo.softDelete(id);
+  return commentRepo.softDelete(id, user.userId);
 };

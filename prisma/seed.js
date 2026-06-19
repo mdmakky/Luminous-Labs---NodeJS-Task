@@ -121,14 +121,14 @@ async function main() {
         changedBy: manager.id,
         oldStatus: 'TODO',
         newStatus: 'DONE',
-        timestamp: new Date(Date.now() - 3600000 * 2), // 2 hours ago
+        createdAt: new Date(Date.now() - 3600000 * 2), // 2 hours ago
       },
       {
         taskId: task2.id,
         changedBy: manager.id,
         oldStatus: 'TODO',
         newStatus: 'IN_PROGRESS',
-        timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+        createdAt: new Date(Date.now() - 3600000), // 1 hour ago
       },
     ],
   });

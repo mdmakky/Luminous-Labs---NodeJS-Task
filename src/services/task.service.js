@@ -95,5 +95,5 @@ export const deleteTask = async (id, { userId, role }) => {
     }
   }
 
-  return taskRepo.softDelete(id);
+  return taskRepo.softDelete(id, userId);
 };

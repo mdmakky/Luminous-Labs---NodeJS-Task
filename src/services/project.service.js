@@ -63,5 +63,5 @@ export const deleteProject = async (id, { userId, role }) => {
     throw new ForbiddenError('You can only delete your own projects');
   }
 
-  return projectRepo.softDelete(id);
+  return projectRepo.softDelete(id, userId);
 };

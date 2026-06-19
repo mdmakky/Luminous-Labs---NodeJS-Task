@@ -37,7 +37,7 @@ const generateRefreshToken = async (userId) => {
 };
 
 // Register a new user
-export const register = async ({ name, email, password, role }) => {
+export const register = async ({ name, email, password }) => {
   // Check if email already exists
   const existing = await userRepo.findByEmail(email);
   if (existing) {
@@ -47,12 +47,12 @@ export const register = async ({ name, email, password, role }) => {
   // Hash the password
   const passwordHash = await bcrypt.hash(password, env.BCRYPT_SALT_ROUNDS);
 
-  // Create the user
+  // Create the user — role is always MEMBER on self-registration
   const user = await userRepo.create({
     name,
     email,
     passwordHash,
-    role: role || 'MEMBER',
+    role: 'MEMBER',
   });
 
   // Generate tokens
