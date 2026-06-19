@@ -1,19 +1,42 @@
 # Task Assignment API with Audit Trail
 
-A production-ready REST API for internal task tracking with **JWT authentication**, **role-based access control**, **status-change audit logs**, and **Swagger documentation**.
+> A production-ready Node.js REST API for internal task tracking — featuring JWT auth with refresh token rotation, granular role-based access control, automatic audit logging on every status change, and full Swagger documentation.
 
-**Stack:** Node.js · Express.js · PostgreSQL · Prisma ORM · JWT · Zod · Jest
+**Stack:** Node.js 20 · Express 5 · PostgreSQL 15 · Prisma ORM · Zod · JWT · Jest · Docker
+
+---
+
+## Table of Contents
+
+1. [Quick Setup](#quick-setup)
+2. [Seeded Test Accounts](#seeded-test-accounts)
+3. [Project Structure](#project-structure)
+4. [Architecture](#architecture)
+5. [Authentication & Authorization](#authentication--authorization)
+6. [Validation & Error Handling](#validation--error-handling)
+7. [Audit Trail](#audit-trail)
+8. [Filtering, Sorting & Pagination](#filtering-sorting--pagination)
+9. [API Reference](#api-reference)
+10. [Tests](#tests)
+11. [Bonus Features](#bonus-features)
 
 ---
 
 ## Quick Setup
 
+### Prerequisites
+- Node.js ≥ 20
+- PostgreSQL 15 running locally **or** use Docker (see below)
+
+### Local Setup
+
 ```bash
-# 1. Install dependencies
+# 1. Clone and install
 npm install
 
-# 2. Copy and configure environment
+# 2. Configure environment
 cp .env.example .env
+# Edit .env with your DATABASE_URL and JWT_SECRET
 
 # 3. Run database migrations
 npm run migrate
@@ -25,10 +48,19 @@ npm run seed
 npm run dev
 ```
 
-Server runs at **http://localhost:3000**  
-API docs (Swagger) at **http://localhost:3000/api-docs**
+Server → **http://localhost:3000**  
+Swagger UI → **http://localhost:3000/api-docs**
 
-### Environment Variables (`.env.example`)
+### Docker Setup (no local PostgreSQL needed)
+
+```bash
+docker-compose up --build
+docker exec task_api_app npx prisma migrate deploy
+docker exec task_api_app node prisma/seed.js
+```
+
+### Environment Variables
+
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/task_api?schema=public
 PORT=3000
@@ -39,141 +71,354 @@ JWT_REFRESH_EXPIRY=7d
 BCRYPT_SALT_ROUNDS=10
 ```
 
-### Run with Docker (no local PostgreSQL needed)
-```bash
-docker-compose up --build
-docker exec task_api_app npx prisma migrate deploy
-docker exec task_api_app node prisma/seed.js
-```
-
 ---
 
 ## Seeded Test Accounts
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@example.com` | `Admin@123` |
-| Manager | `manager@example.com` | `Manager@123` |
-| Member | `member@example.com` | `Member@123` |
+After running `npm run seed`, the following accounts are available:
+
+| Role    | Email                    | Password       |
+|---------|--------------------------|----------------|
+| Admin   | `admin@example.com`      | `Admin@123`    |
+| Manager | `manager@example.com`    | `Manager@123`  |
+| Member  | `member@example.com`     | `Member@123`   |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app.js                  # Express app setup (middleware, routing, swagger)
+├── server.js               # Server bootstrap + graceful shutdown
+├── config/
+│   ├── env.js              # Validated env loader
+│   ├── prisma.js           # Prisma client + pg connection pool
+│   └── swagger.js          # OpenAPI 3.0 specification
+├── controllers/            # HTTP layer — reads req, calls services, sends response
+│   ├── auth.controller.js
+│   ├── task.controller.js
+│   ├── project.controller.js
+│   ├── comment.controller.js
+│   └── audit-log.controller.js
+├── services/               # Business logic + RBAC enforcement
+│   ├── auth.service.js
+│   ├── task.service.js
+│   ├── project.service.js
+│   ├── comment.service.js
+│   └── audit-log.service.js
+├── repositories/           # Database access via Prisma (pure data layer)
+│   ├── user.repository.js
+│   ├── task.repository.js
+│   ├── project.repository.js
+│   ├── comment.repository.js
+│   ├── audit-log.repository.js
+│   └── refresh-token.repository.js
+├── middleware/
+│   ├── auth.middleware.js       # JWT verification
+│   ├── rbac.middleware.js       # Role enforcement
+│   ├── validation.middleware.js # Zod schema validation
+│   ├── rate-limit.middleware.js # Auth route rate limiting
+│   ├── error-handler.js         # Centralized error handler
+│   └── async-handler.js         # Async error wrapper
+├── routes/                 # Route definitions + middleware chains
+├── validations/            # Zod schemas per resource
+└── utils/
+    ├── errors.js           # Custom error classes
+    ├── response.js         # Standardized response helpers
+    └── token-cleanup.js    # Startup utility: prune expired tokens
+
+prisma/
+├── schema.prisma           # Database models and relationships
+├── seed.js                 # Seed script for test accounts + sample data
+└── migrations/             # Versioned SQL migration history
+
+tests/
+├── auth.test.js            # 9 auth endpoint integration tests
+├── task.test.js            # 19 task/project/comment integration tests
+├── audit.test.js           # 4 audit trail integration tests
+├── setup.js
+└── helpers/db.helper.js    # Test DB teardown helper
+```
 
 ---
 
 ## Architecture
 
-This section describes the design patterns, layer roles, database relationships, and security controls used in the Task Assignment API.
-
-### 1. Architectural Overview
-
-The application follows a clean, traditional **Layered Architecture**. By segregating responsibilities into distinct layers, we ensure that business rules, request routing, validation, and data persistence remain decoupled and testable.
+The application follows a strict **Layered Architecture** — each layer has a single, well-defined responsibility.
 
 ```mermaid
 graph TD
     Client -->|HTTP Request| Routes
-    Routes -->|Request Payload| Validation[Zod Validation]
-    Validation -->|Parsed Object| Controller
-    Controller -->|AppError Handling| Middleware[Error Handler Middleware]
+    Routes -->|Validate Schema| Validation[Zod Validation]
+    Validation -->|Parsed Payload| Controller
     Controller --> Services
-    Services -->|Business logic / RBAC| Repositories
-    Repositories -->|Queries| Prisma[Prisma ORM]
-    Prisma -->|Query Execution| PostgreSQL
+    Services -->|Business Logic / RBAC| Repositories
+    Repositories -->|Prisma Queries| PostgreSQL
+    Controller -->|AppError| ErrorHandler[Centralized Error Handler]
 ```
 
-#### Layer Roles
-1. **Routes (`src/routes/*`)**: Defines the endpoint URIs and chains the appropriate authentication, validation, and authorization middlewares before delegating to the controller.
-2. **Controllers (`src/controllers/*`)**: Reads route parameters, query strings, and payloads. Delegates execution to the services and constructs standard API envelopes for response.
-3. **Services (`src/services/*`)**: House all core business logic and state transitions. Enforces security checks (e.g. user authorization boundaries).
-4. **Repositories (`src/repositories/*`)**: Contains data-access logic and interacts directly with PostgreSQL via the Prisma Client.
-5. **Utils & Configs (`src/utils/*` & `src/config/*`)**: Houses centralized configuration loaders, error classes, and JSON response helpers.
+| Layer | Responsibility |
+|---|---|
+| **Routes** | URI definitions, middleware chaining (auth → validate → controller) |
+| **Controllers** | Read `req`, call service, send standardized `res` |
+| **Services** | All business rules, ownership checks, RBAC enforcement |
+| **Repositories** | All Prisma queries — no business logic |
+| **Middleware** | Auth, RBAC guards, Zod validation, error handler |
+| **Utils** | Error classes, response helpers, token cleanup |
 
----
-
-### 2. Core Patterns & Practices
-
-#### Centralized Error Handling
-An Express middleware (`src/middleware/error-handler.js`) intercepts all errors thrown in the controller and service layers. Operational errors (e.g., validation failures, unauthorized access) receive correct semantic HTTP status codes.
-
-#### Response Standardization
-All JSON responses conform to a predictable envelope:
-- **Success**: `{ success: true, data: [...], error: null }`
-- **Error**: `{ success: false, data: null, error: { message: "Error msg", errors: [...] } }`
-
----
-
-### 3. Security Hardening & RBAC
-
-#### JWT Authentication with Refresh Token Rotation (RTR)
-- **Access Tokens**: Short-lived (15 minutes), containing the user ID, email, and role.
-- **Refresh Tokens**: Long-lived (7 days), stored securely in PostgreSQL as a SHA-256 hash.
-- **Rotation**: On every token refresh, the old refresh token is immediately deleted/invalidated, and a new refresh token is issued to the client. This mitigates the risk of replay attacks.
-
-#### Role-Based Access Control (RBAC) Matrix
-Permissions are enforced at the route level via middleware (`rbac.middleware.js`) and further validated inside services when data ownership is required (e.g., project owner checks).
-
-| Action | Admin | Manager | Member |
-|---|---|---|---|
-| Projects CRUD | ✅ | Owner only | ❌ |
-| Tasks Create/Delete | ✅ | Project Owner only | ❌ |
-| Tasks Update | ✅ | Project Owner only | Assignee only (Status update only) |
-| Task List | ✅ | All tasks | Assigned tasks only |
-| Audit Trail View | ✅ | Project Owner only | Assignee only |
-| Comments CRUD | ✅ | Project Owner only | Assignee/Author only |
-
----
-
-### 4. Database Schema Relationships
+### Database Schema
 
 ```mermaid
 erDiagram
     User ||--o{ RefreshToken : issues
     User ||--o{ Project : owns
     User ||--o{ Task : creates
-    User ||--o{ Task : assigned
+    User ||--o{ Task : "assigned to"
     User ||--o{ TaskComment : writes
     User ||--o{ AuditLog : performs
     Project ||--o{ Task : contains
     Task ||--o{ TaskComment : has
     Task ||--o{ AuditLog : generates
 ```
-- **Soft Delete**: Both `Project`, `Task`, and `TaskComment` models feature a `deletedAt` timestamp. Records where `deletedAt != null` are automatically excluded from lists and lookups.
-- **Audit Trails**: The `AuditLog` table logs every task status transition (`oldStatus` -> `newStatus`), capturing who changed it and when.
+
+**Key schema decisions:**
+- `Task` has `completedAt DateTime?` — auto-set when status reaches `DONE`, cleared otherwise.
+- `Project`, `Task`, `TaskComment` have `deletedAt` + `deletedBy` for auditable soft deletes.
+- `AuditLog` is **immutable** — no update or delete operations are permitted.
+- `RefreshToken` stores only the SHA-256 hash, never the raw token.
 
 ---
 
-## API Documentation (Swagger)
+## Authentication & Authorization
 
-![Swagger UI](./swagger-ui.png)
+### JWT with Refresh Token Rotation (RTR)
 
-Full interactive docs at **http://localhost:3000/api-docs** — click **Authorize** and paste your JWT access token.
+| Token | TTL | Storage | Purpose |
+|---|---|---|---|
+| Access Token | 15 minutes | Client memory | Authenticates every request via `Authorization: Bearer` |
+| Refresh Token | 7 days | PostgreSQL (hashed) | Issues new access tokens without re-login |
+
+**Security properties:**
+- Refresh tokens are stored as **SHA-256 hashes** — raw tokens are never persisted.
+- On every `/auth/refresh` call, the old token is **immediately deleted** and a new pair is issued (rotation). Replay of an old token returns `401`.
+- On `/auth/logout`, the refresh token is deleted from the database, preventing future reuse.
+- On server startup, a non-blocking cleanup removes all expired tokens from the database.
+
+### RBAC Matrix
+
+Enforced at two layers: route-level middleware (guards) **and** service-level ownership checks.
+
+| Action | Admin | Manager | Member |
+|---|---|---|---|
+| Create / Delete Project | ✅ All | ✅ Own projects only | ❌ |
+| Update Project | ✅ All | ✅ Own projects only | ❌ |
+| List Projects | ✅ All | ✅ Own projects | ✅ Projects with assigned tasks |
+| Create / Delete Task | ✅ All | ✅ Own projects only | ❌ |
+| Update Task (full) | ✅ All | ✅ Own projects only | ❌ |
+| Update Task (status only) | ✅ All | ✅ Own projects only | ✅ Assigned tasks only |
+| Reassign Task | ✅ All | ✅ Own projects only | ❌ |
+| List Tasks | ✅ All | ✅ Own projects only | ✅ Assigned tasks only |
+| View Audit Trail | ✅ All | ✅ Own projects only | ✅ Assigned tasks only |
+| Post Comment | ✅ All | ✅ Own projects only | ✅ Assigned tasks only |
+| Edit Comment | ✅ All | ✅ Own projects only | ✅ Own comments only |
+| Delete Comment | ✅ All | ✅ Own projects only | ✅ Own comments only |
+
+### Auth Rate Limiting
+
+`/auth/register` and `/auth/login` are protected by a **5 requests per 15 minutes** rate limiter to prevent brute-force and credential-stuffing attacks.
+
+---
+
+## Validation & Error Handling
+
+### Request Validation
+
+All request bodies, query strings, and route parameters are validated with **Zod schemas** before reaching the controller. Invalid payloads are rejected immediately with field-level error details:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "message": "Validation failed",
+    "errors": [
+      { "field": "body.email", "message": "Invalid email address" },
+      { "field": "body.password", "message": "Password must be at least 6 characters" }
+    ]
+  }
+}
+```
+
+### Standardized Response Envelope
+
+Every response — success or failure — uses the same predictable shape:
+
+```json
+// Success
+{ "success": true, "data": { ... }, "error": null }
+
+// Success (paginated list)
+{
+  "success": true,
+  "data": [ ... ],
+  "error": null,
+  "meta": { "totalCount": 42, "page": 1, "limit": 10, "totalPages": 5 }
+}
+
+// Error
+{ "success": false, "data": null, "error": { "message": "..." } }
+```
+
+### HTTP Status Codes
+
+| Scenario | Status |
+|---|---|
+| Success | `200` / `201` |
+| Validation error | `400` |
+| Unauthenticated | `401` |
+| Forbidden (RBAC) | `403` |
+| Not found | `404` |
+| Duplicate / Conflict | `409` |
+| Rate limited | `429` |
+| Unexpected error | `500` |
+
+### Centralized Error Handler
+
+All thrown errors are caught by `src/middleware/error-handler.js`. In production, unexpected error details are hidden from the client — only `"Internal server error"` is shown. Error details are logged server-side.
+
+---
+
+## Audit Trail
+
+**Every task status change is automatically and immutably logged.** No manual API call is required from the client.
+
+### How It Works
+
+```
+PATCH /api/v1/tasks/:id  (e.g., status: "TODO" → "IN_PROGRESS")
+        ↓
+  task.controller.js  detects oldStatus ≠ newStatus
+        ↓
+  audit-log.service.js  writes to audit_logs table
+        ↓
+  GET /api/v1/tasks/:id/audit  returns full history
+```
+
+### AuditLog Record
+
+Each log entry captures:
+- `taskId` — which task changed
+- `changedBy` — which user made the change (UUID)
+- `oldStatus` — previous status
+- `newStatus` — new status
+- `createdAt` — exact timestamp
+
+### Viewing the Audit Trail
+
+```bash
+curl "http://localhost:3000/api/v1/tasks/<TASK_UUID>/audit?page=1&limit=10&sortBy=createdAt&sortOrder=desc" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+**Example response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "3f2e...",
+      "taskId": "abc1...",
+      "oldStatus": "TODO",
+      "newStatus": "IN_PROGRESS",
+      "createdAt": "2025-06-18T14:30:00.000Z",
+      "user": { "name": "Jane Member", "email": "member@example.com" }
+    },
+    {
+      "id": "4d5f...",
+      "taskId": "abc1...",
+      "oldStatus": "IN_PROGRESS",
+      "newStatus": "DONE",
+      "createdAt": "2025-06-19T09:10:00.000Z",
+      "user": { "name": "Jane Member", "email": "member@example.com" }
+    }
+  ],
+  "meta": { "totalCount": 2, "page": 1, "limit": 10, "totalPages": 1 }
+}
+```
+
+> **Design choice:** `AuditLog` records are **write-once** — no update or delete endpoints exist for them, ensuring an unalterable history.
+
+---
+
+## Filtering, Sorting & Pagination
+
+All list endpoints support filtering, sorting, and cursor-free pagination via query parameters.
+
+### Tasks — `GET /api/v1/tasks`
+
+| Parameter | Type | Description |
+|---|---|---|
+| `status` | enum | `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CANCELLED` |
+| `priority` | enum | `LOW`, `MEDIUM`, `HIGH`, `URGENT` |
+| `assigneeId` | uuid | Filter by assignee |
+| `projectId` | uuid | Filter by project |
+| `sortBy` | string | `createdAt`, `dueDate`, `priority`, `status`, `title` |
+| `sortOrder` | enum | `asc`, `desc` |
+| `page` | int | Default `1` |
+| `limit` | int | Default `10`, max `100` |
+
+### Projects — `GET /api/v1/projects`
+
+| Parameter | Type | Description |
+|---|---|---|
+| `name` | string | Partial name search |
+| `sortBy` | string | `name`, `createdAt`, `updatedAt` |
+| `sortOrder` | enum | `asc`, `desc` |
+| `page` / `limit` | int | Pagination |
+
+### Comments — `GET /api/v1/tasks/:taskId/comments`
+
+Supports `page`, `limit`, `sortBy` (`createdAt`, `updatedAt`), `sortOrder`.
+
+### Audit Trail — `GET /api/v1/tasks/:id/audit`
+
+Supports `page`, `limit`, `sortBy` (`createdAt`, `oldStatus`, `newStatus`), `sortOrder`.
 
 ---
 
 ## API Reference
 
+Swagger UI with full interactive docs: **http://localhost:3000/api-docs**
+
+![Swagger UI](./swagger-ui.png)
+
 All responses use the envelope: `{ "success": true/false, "data": ..., "error": ... }`
 
-### Auth
+### Auth Endpoints
 
 ```bash
-# Register
+# Register (always creates MEMBER — role cannot be self-assigned)
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{ "name": "John", "email": "john@example.com", "password": "Pass@123" }'
-# Note: all registered users default to MEMBER role (role cannot be self-assigned)
+  -d '{ "name": "John Doe", "email": "john@example.com", "password": "Pass@123" }'
 
-# Login → copy accessToken + refreshToken from response
+# Login
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{ "email": "manager@example.com", "password": "Manager@123" }'
 
-# Get profile
-curl http://localhost:3000/api/v1/auth/me -H "Authorization: Bearer <ACCESS_TOKEN>"
+# Get own profile
+curl http://localhost:3000/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
 
-# Refresh tokens (old token is invalidated)
+# Refresh tokens — old refresh token is invalidated after this call
 curl -X POST http://localhost:3000/api/v1/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{ "refreshToken": "<REFRESH_TOKEN>" }'
 
-# Logout
+# Logout — invalidates the refresh token server-side
 curl -X POST http://localhost:3000/api/v1/auth/logout \
   -H "Content-Type: application/json" \
   -d '{ "refreshToken": "<REFRESH_TOKEN>" }'
@@ -182,89 +427,92 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 ### Projects
 
 ```bash
-# Create (Admin/Manager)
+# Create (Admin / Manager only)
 curl -X POST http://localhost:3000/api/v1/projects \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
   -d '{ "name": "Sprint Alpha", "description": "Q3 release sprint" }'
 
-# List (paginated)
-curl "http://localhost:3000/api/v1/projects?page=1&limit=10" -H "Authorization: Bearer <TOKEN>"
+# List with filtering and pagination
+curl "http://localhost:3000/api/v1/projects?name=Sprint&sortBy=createdAt&sortOrder=desc&page=1&limit=10" \
+  -H "Authorization: Bearer <TOKEN>"
 
-# Get / Update / Delete
-curl http://localhost:3000/api/v1/projects/<ID> -H "Authorization: Bearer <TOKEN>"
-curl -X PATCH http://localhost:3000/api/v1/projects/<ID> -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" -d '{ "name": "Updated Name" }'
-curl -X DELETE http://localhost:3000/api/v1/projects/<ID> -H "Authorization: Bearer <TOKEN>"
+# Get single project
+curl http://localhost:3000/api/v1/projects/<ID> \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Update (owner or Admin)
+curl -X PATCH http://localhost:3000/api/v1/projects/<ID> \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{ "name": "Sprint Alpha v2", "description": "Updated scope" }'
+
+# Delete — soft delete, records deletedBy
+curl -X DELETE http://localhost:3000/api/v1/projects/<ID> \
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 ### Tasks
 
 ```bash
-# Create (Admin/Manager only)
+# Create (Admin / Manager only)
 curl -X POST http://localhost:3000/api/v1/tasks \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
   -d '{
     "title": "Setup CI pipeline",
+    "description": "Configure GitHub Actions for automated testing",
     "priority": "HIGH",
+    "status": "TODO",
     "projectId": "<PROJECT_UUID>",
     "assigneeId": "<MEMBER_UUID>",
     "dueDate": "2025-12-31T00:00:00Z"
   }'
 
 # List with filters + sorting + pagination
-curl "http://localhost:3000/api/v1/tasks?status=IN_PROGRESS&priority=HIGH&sortBy=dueDate&sortOrder=desc&page=1&limit=10" \
+curl "http://localhost:3000/api/v1/tasks?status=IN_PROGRESS&priority=HIGH&sortBy=dueDate&sortOrder=asc&page=1&limit=10" \
   -H "Authorization: Bearer <TOKEN>"
 
-# Update status (Members can only update status on assigned tasks)
+# Get single task
+curl http://localhost:3000/api/v1/tasks/<ID> \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Update task — triggers audit log if status changes
 curl -X PATCH http://localhost:3000/api/v1/tasks/<ID> \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{ "status": "DONE" }'
+  -d '{ "status": "IN_PROGRESS" }'
+
+# Delete (soft delete — Admin / Manager only)
+curl -X DELETE http://localhost:3000/api/v1/tasks/<ID> \
+  -H "Authorization: Bearer <TOKEN>"
 
 # Valid statuses: TODO · IN_PROGRESS · IN_REVIEW · DONE · CANCELLED
 # Valid priorities: LOW · MEDIUM · HIGH · URGENT
-
-# Delete (soft delete — Admin/Manager only)
-curl -X DELETE http://localhost:3000/api/v1/tasks/<ID> -H "Authorization: Bearer <TOKEN>"
 ```
 
 ### Audit Trail
 
-Every task status change is **automatically logged**. No manual trigger needed.
-
 ```bash
-# View audit history for a task
-curl http://localhost:3000/api/v1/tasks/<TASK_UUID>/audit -H "Authorization: Bearer <TOKEN>"
-```
-
-Response:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "...",
-      "oldStatus": "TODO",
-      "newStatus": "IN_PROGRESS",
-      "createdAt": "2025-06-18T14:30:00.000Z",
-      "user": { "name": "Team Member", "email": "member@example.com" }
-    }
-  ]
-}
+# View full audit history for a task (paginated, sortable)
+curl "http://localhost:3000/api/v1/tasks/<TASK_UUID>/audit?page=1&limit=10&sortBy=createdAt&sortOrder=desc" \
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 ### Comments
 
 ```bash
-# List / Add
-curl http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments -H "Authorization: Bearer <TOKEN>"
+# List comments on a task (paginated)
+curl "http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments?page=1&limit=20&sortBy=createdAt&sortOrder=asc" \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Post a comment
 curl -X POST http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{ "content": "Completed and ready for review." }'
+  -d '{ "content": "Implementation complete and ready for review." }'
 
-# Edit (author only) / Delete (author or admin)
+# Edit (author only)
 curl -X PATCH http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments/<COMMENT_UUID> \
   -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
-  -d '{ "content": "Updated text." }'
+  -d '{ "content": "Updated comment text." }'
+
+# Delete (author, Admin, or project Manager)
 curl -X DELETE http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments/<COMMENT_UUID> \
   -H "Authorization: Bearer <TOKEN>"
 ```
@@ -277,27 +525,47 @@ curl -X DELETE http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments/<COMMENT_
 npm test
 ```
 
+**Results:**
+
 ```
 Test Suites: 3 passed, 3 total
 Tests:       32 passed, 32 total
-
-auth.test.js  (9 tests)  — register, login, duplicate email, profile, wrong password,
-                           token refresh rotation, logout invalidation
-task.test.js  (19 tests) — admin/manager/member create permissions, list scoping,
-                           member status update, reassign block, delete RBAC,
-                           project filtering/sorting/search, comment pagination,
-                           manager comment delete ACL
-audit.test.js (4 tests)  — status change creates log, non-status update skips log,
-                           authorized access, unauthorized blocked (403)
+Snapshots:   0 total
+Time:        ~10s
 ```
+
+### Test Coverage by Suite
+
+| Suite | Tests | What's covered |
+|---|---|---|
+| `auth.test.js` | 9 | Register, login, duplicate email rejection, profile retrieval, wrong password, token refresh rotation (old token invalidated), logout token invalidation |
+| `task.test.js` | 19 | Admin/Manager can create tasks, Member cannot; list scoping per role; Member can update status on assigned tasks only; Member cannot reassign; Admin can delete, Member cannot; project filtering/sorting/search; comment pagination with ACL; Manager can delete task comments within own project |
+| `audit.test.js` | 4 | Status change creates audit log entry; non-status update skips log; authorized user can read audit trail; unauthorized user gets `403` |
+
+### Test Design Notes
+- Each test suite runs `clearDatabase()` before every test to ensure full isolation.
+- Tests use `supertest` to make real HTTP calls against the Express app.
+- No mocking — tests hit a live PostgreSQL test database for end-to-end fidelity.
+- Rate limiting is automatically bypassed in `NODE_ENV=test` to prevent flakiness.
 
 ---
 
 ## Bonus Features
 
-| Feature | Details |
+All optional bonus items from the task requirements are implemented:
+
+| Feature | Implementation |
 |---|---|
-| Refresh Token Rotation | Old token deleted on each refresh; stored as SHA-256 hash |
-| Swagger / OpenAPI | Live at `/api-docs` with JWT auth support |
-| Docker | `Dockerfile` + `docker-compose.yml` included |
-| Soft Delete | `deletedAt` field on Project, Task, Comment |
+| **Refresh Token Rotation** | Token hashed with SHA-256; old token deleted on every `/auth/refresh`; replay of old token returns `401` |
+| **Swagger / OpenAPI 3.0** | Full spec in `src/config/swagger.js`; live interactive UI at `/api-docs` with JWT Bearer auth |
+| **Docker** | `Dockerfile` (Node 20 Alpine) + `docker-compose.yml` with PostgreSQL healthcheck |
+| **Soft Delete** | `deletedAt` + `deletedBy` on `Project`, `Task`, `TaskComment`; deleted records excluded from all queries |
+| **Activity Logging for Comments** | `deletedBy` field records who deleted each comment; `completedAt` auto-set on `Task` when status reaches `DONE` |
+
+### Production Hardening (beyond task requirements)
+- **DB connection pool** tuned: `max: 20`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 2000`
+- **Auth rate limiting**: 5 req / 15 min per IP on login and register endpoints
+- **Startup token cleanup**: expired refresh tokens pruned from DB on every server start
+- **Helmet** security headers enabled
+- **GZIP compression** via `compression` middleware
+- **Consistent error exposure**: production mode hides internal error details from clients
