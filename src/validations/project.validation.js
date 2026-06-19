@@ -29,3 +29,10 @@ export const listProjectsSchema = z.object({
     sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
   }),
 });
+
+// GET /api/v1/projects/:id or DELETE /api/v1/projects/:id
+export const getOrDeleteProjectSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID'),
+  }),
+});

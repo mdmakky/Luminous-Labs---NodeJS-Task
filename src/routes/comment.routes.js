@@ -6,6 +6,7 @@ import {
   createCommentSchema,
   updateCommentSchema,
   listCommentsSchema,
+  deleteCommentSchema,
 } from '../validations/comment.validation.js';
 
 // Must use mergeParams to access :taskId from parent route
@@ -16,6 +17,6 @@ router.use(authenticate);
 router.get('/', validate(listCommentsSchema), commentController.listComments);
 router.post('/', validate(createCommentSchema), commentController.createComment);
 router.patch('/:id', validate(updateCommentSchema), commentController.updateComment);
-router.delete('/:id', commentController.deleteComment);
+router.delete('/:id', validate(deleteCommentSchema), commentController.deleteComment);
 
 export default router;

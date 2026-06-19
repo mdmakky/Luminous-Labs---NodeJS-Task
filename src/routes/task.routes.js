@@ -10,6 +10,7 @@ import {
   updateTaskSchema,
   listTasksSchema,
   listAuditLogsSchema,
+  getOrDeleteTaskSchema,
 } from '../validations/task.validation.js';
 
 const router = Router();
@@ -22,7 +23,7 @@ router.use(authenticate);
 
 // All roles can list and view tasks (service layer filters by role)
 router.get('/', validate(listTasksSchema), taskController.listTasks);
-router.get('/:id', taskController.getTask);
+router.get('/:id', validate(getOrDeleteTaskSchema), taskController.getTask);
 
 // Only ADMIN and MANAGER can create tasks
 router.post('/', requireCanCreateTask, validate(createTaskSchema), taskController.createTask);
@@ -31,7 +32,7 @@ router.post('/', requireCanCreateTask, validate(createTaskSchema), taskControlle
 router.patch('/:id', validate(updateTaskSchema), taskController.updateTask);
 
 // Only ADMIN and MANAGER can delete tasks
-router.delete('/:id', requireCanDeleteTask, taskController.deleteTask);
+router.delete('/:id', requireCanDeleteTask, validate(getOrDeleteTaskSchema), taskController.deleteTask);
 
 // Audit trail — accessible to anyone who has access to the task
 router.get('/:id/audit', validate(listAuditLogsSchema), auditLogController.getAuditLog);

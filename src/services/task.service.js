@@ -40,10 +40,11 @@ export const getTask = async (id, { userId, role }) => {
 
 // Create a task — admin or manager (within their project)
 export const createTask = async (data, { userId, role }) => {
+  const project = await projectRepo.findById(data.projectId);
+  if (!project) throw new NotFoundError('Project not found');
+
   // Managers can only create tasks in their own projects
   if (role === 'MANAGER') {
-    const project = await projectRepo.findById(data.projectId);
-    if (!project) throw new NotFoundError('Project not found');
     if (project.ownerId !== userId) {
       throw new ForbiddenError('You can only create tasks in your own projects');
     }

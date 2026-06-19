@@ -33,3 +33,11 @@ export const listCommentsSchema = z.object({
     taskId: z.string().uuid('Invalid task ID'),
   }),
 });
+
+// DELETE /api/v1/tasks/:taskId/comments/:id
+export const deleteCommentSchema = z.object({
+  params: z.object({
+    taskId: z.string().uuid('Invalid task ID'),
+    id: z.string().uuid('Invalid comment ID'),
+  }),
+});

@@ -7,6 +7,7 @@ import {
   createProjectSchema,
   updateProjectSchema,
   listProjectsSchema,
+  getOrDeleteProjectSchema,
 } from '../validations/project.validation.js';
 
 const router = Router();
@@ -16,7 +17,7 @@ router.use(authenticate);
 
 // Anyone authenticated can list and view projects
 router.get('/', validate(listProjectsSchema), projectController.listProjects);
-router.get('/:id', projectController.getProject);
+router.get('/:id', validate(getOrDeleteProjectSchema), projectController.getProject);
 
 // Only ADMIN and MANAGER can create, update, delete projects
 router.post(
@@ -31,6 +32,6 @@ router.patch(
   validate(updateProjectSchema),
   projectController.updateProject,
 );
-router.delete('/:id', requireCanManageProject, projectController.deleteProject);
+router.delete('/:id', requireCanManageProject, validate(getOrDeleteProjectSchema), projectController.deleteProject);
 
 export default router;

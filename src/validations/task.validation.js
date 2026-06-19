@@ -67,3 +67,10 @@ export const listAuditLogsSchema = z.object({
     id: z.string().uuid('Invalid task ID'),
   }),
 });
+
+// GET /api/v1/tasks/:id or DELETE /api/v1/tasks/:id
+export const getOrDeleteTaskSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid task ID'),
+  }),
+});
