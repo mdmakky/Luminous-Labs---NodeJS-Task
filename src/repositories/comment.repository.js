@@ -1,7 +1,10 @@
 import prisma from '../config/prisma.js';
 
 // Get comments for a task with pagination and sorting - excludes soft-deleted
-export const findByTaskId = async (taskId, { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'asc' } = {}) => {
+export const findByTaskId = async (
+  taskId,
+  { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'asc' } = {},
+) => {
   const skip = (page - 1) * limit;
 
   const where = {

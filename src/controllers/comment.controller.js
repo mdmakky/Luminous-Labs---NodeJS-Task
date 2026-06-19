@@ -16,7 +16,7 @@ export const listComments = asyncHandler(async (req, res) => {
       sortBy: sortBy || 'createdAt',
       sortOrder: sortOrder || 'asc',
     },
-    req.user
+    req.user,
   );
 
   sendPaginated(res, comments, {

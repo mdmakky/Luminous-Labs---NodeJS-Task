@@ -8,7 +8,10 @@ export const logStatusChange = async ({ taskId, changedBy, oldStatus, newStatus 
 };
 
 // Get the audit trail for a task with pagination and sorting
-export const getAuditLog = async (taskId, { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'asc' } = {}) => {
+export const getAuditLog = async (
+  taskId,
+  { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'asc' } = {},
+) => {
   const skip = (page - 1) * limit;
 
   const where = {

@@ -271,7 +271,12 @@ describe('Tasks API & RBAC', () => {
       });
       // Add a task in project1 assigned to member1
       await prisma.task.create({
-        data: { title: 'Assigned to Member1', projectId: project1.id, assigneeId: member1.id, creatorId: manager1.id },
+        data: {
+          title: 'Assigned to Member1',
+          projectId: project1.id,
+          assigneeId: member1.id,
+          creatorId: manager1.id,
+        },
       });
     });
 
@@ -311,7 +316,12 @@ describe('Tasks API & RBAC', () => {
         data: { title: 'Comment Task', projectId: project1.id, creatorId: manager1.id },
       });
       comment1 = await prisma.taskComment.create({
-        data: { content: 'Comment A', taskId: task.id, authorId: member1.id, createdAt: new Date(Date.now() - 5000) },
+        data: {
+          content: 'Comment A',
+          taskId: task.id,
+          authorId: member1.id,
+          createdAt: new Date(Date.now() - 5000),
+        },
       });
       comment2 = await prisma.taskComment.create({
         data: { content: 'Comment B', taskId: task.id, authorId: member2.id },

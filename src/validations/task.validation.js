@@ -57,7 +57,10 @@ export const listAuditLogsSchema = z.object({
   query: z.object({
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(100).optional().default(10),
-    sortBy: z.enum(['createdAt', 'oldStatus', 'newStatus', 'timestamp']).optional().default('createdAt'),
+    sortBy: z
+      .enum(['createdAt', 'oldStatus', 'newStatus', 'timestamp'])
+      .optional()
+      .default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
   }),
   params: z.object({

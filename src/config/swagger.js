@@ -84,8 +84,14 @@ export const swaggerDocument = {
           id: { type: 'string', format: 'uuid' },
           taskId: { type: 'string', format: 'uuid' },
           changedBy: { type: 'string', format: 'uuid' },
-          oldStatus: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'] },
-          newStatus: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'] },
+          oldStatus: {
+            type: 'string',
+            enum: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'],
+          },
+          newStatus: {
+            type: 'string',
+            enum: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'],
+          },
           timestamp: { type: 'string', format: 'date-time' },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
@@ -212,15 +218,28 @@ export const swaggerDocument = {
     },
     '/projects': {
       get: {
-        summary: 'List projects (Admin sees all, Managers see own, Members see projects they are assigned tasks in)',
+        summary:
+          'List projects (Admin sees all, Managers see own, Members see projects they are assigned tasks in)',
         tags: ['Projects'],
         security: [{ BearerAuth: [] }],
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
           { name: 'name', in: 'query', schema: { type: 'string' } },
-          { name: 'sortBy', in: 'query', schema: { type: 'string', enum: ['name', 'createdAt', 'updatedAt'], default: 'createdAt' } },
-          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['name', 'createdAt', 'updatedAt'],
+              default: 'createdAt',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
         ],
         responses: {
           200: { description: 'List of projects' },
@@ -412,8 +431,20 @@ export const swaggerDocument = {
           { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
-          { name: 'sortBy', in: 'query', schema: { type: 'string', enum: ['createdAt', 'oldStatus', 'newStatus', 'timestamp'], default: 'createdAt' } },
-          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['createdAt', 'oldStatus', 'newStatus', 'timestamp'],
+              default: 'createdAt',
+            },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
         ],
         responses: {
           200: { description: 'Audit trail history log list' },
@@ -434,8 +465,16 @@ export const swaggerDocument = {
           },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
-          { name: 'sortBy', in: 'query', schema: { type: 'string', enum: ['createdAt', 'updatedAt'], default: 'createdAt' } },
-          { name: 'sortOrder', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } },
+          {
+            name: 'sortBy',
+            in: 'query',
+            schema: { type: 'string', enum: ['createdAt', 'updatedAt'], default: 'createdAt' },
+          },
+          {
+            name: 'sortOrder',
+            in: 'query',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+          },
         ],
         responses: {
           200: { description: 'Comment list' },
