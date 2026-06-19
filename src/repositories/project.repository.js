@@ -1,12 +1,29 @@
 import prisma from '../config/prisma.js';
 
-// Get all projects (with pagination) - excludes soft-deleted
-export const findAll = async ({ page = 1, limit = 10, ownerId = null } = {}) => {
+// Get all projects with filtering, sorting, and pagination
+export const findAll = async ({
+  page = 1,
+  limit = 10,
+  ownerId = null,
+  memberId = null,
+  name = null,
+  sortBy = 'createdAt',
+  sortOrder = 'desc',
+} = {}) => {
   const skip = (page - 1) * limit;
 
   const where = {
     deletedAt: null,
     ...(ownerId && { ownerId }),
+    ...(name && { name: { contains: name, mode: 'insensitive' } }),
+    ...(memberId && {
+      tasks: {
+        some: {
+          assigneeId: memberId,
+          deletedAt: null,
+        },
+      },
+    }),
   };
 
   const [projects, totalCount] = await Promise.all([
@@ -14,7 +31,7 @@ export const findAll = async ({ page = 1, limit = 10, ownerId = null } = {}) => 
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortBy]: sortOrder },
       include: {
         owner: {
           select: { id: true, name: true, email: true },

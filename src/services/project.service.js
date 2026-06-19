@@ -1,10 +1,26 @@
 import * as projectRepo from '../repositories/project.repository.js';
 import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
-// List all projects (admin sees all, manager sees own)
-export const listProjects = async ({ userId, role, page, limit }) => {
-  const ownerId = role === 'ADMIN' ? null : userId;
-  return projectRepo.findAll({ page, limit, ownerId });
+// List all projects with filtering, sorting, and pagination (admin sees all, manager sees own, member sees projects they have tasks in)
+export const listProjects = async ({ userId, role, page, limit, name, sortBy, sortOrder }) => {
+  let ownerId = null;
+  let memberId = null;
+
+  if (role === 'MANAGER') {
+    ownerId = userId;
+  } else if (role === 'MEMBER') {
+    memberId = userId;
+  }
+
+  return projectRepo.findAll({
+    page,
+    limit,
+    ownerId,
+    memberId,
+    name,
+    sortBy: sortBy || 'createdAt',
+    sortOrder: sortOrder || 'desc',
+  });
 };
 
 // Get a single project

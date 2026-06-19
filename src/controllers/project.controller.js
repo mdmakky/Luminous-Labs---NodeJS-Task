@@ -4,17 +4,24 @@ import asyncHandler from '../middleware/async-handler.js';
 
 // GET /api/v1/projects
 export const listProjects = asyncHandler(async (req, res) => {
-  const { page, limit } = req.query;
+  const { page, limit, name, sortBy, sortOrder } = req.query;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
   const { projects, totalCount } = await projectService.listProjects({
     userId: req.user.userId,
     role: req.user.role,
-    page: parseInt(page) || 1,
-    limit: parseInt(limit) || 10,
+    page: parsedPage,
+    limit: parsedLimit,
+    name,
+    sortBy,
+    sortOrder,
   });
+
   sendPaginated(res, projects, {
     totalCount,
-    page: parseInt(page) || 1,
-    limit: parseInt(limit) || 10,
+    page: parsedPage,
+    limit: parsedLimit,
   });
 });
 
