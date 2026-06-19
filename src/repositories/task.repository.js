@@ -8,6 +8,7 @@ export const findAll = async ({
   priority,
   assigneeId,
   projectId,
+  projectOwnerId,
   sortBy = 'createdAt',
   sortOrder = 'asc',
 } = {}) => {
@@ -20,6 +21,11 @@ export const findAll = async ({
     ...(priority && { priority }),
     ...(assigneeId && { assigneeId }),
     ...(projectId && { projectId }),
+    ...(projectOwnerId && {
+      project: {
+        ownerId: projectOwnerId,
+      },
+    }),
   };
 
   const [tasks, totalCount] = await Promise.all([

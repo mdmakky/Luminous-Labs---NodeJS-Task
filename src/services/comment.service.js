@@ -31,7 +31,7 @@ export const updateComment = async (id, content, user) => {
   return commentRepo.update(id, content);
 };
 
-// Delete a comment — author or admin
+// Delete a comment — author, admin, or project manager
 export const deleteComment = async (id, user) => {
   const comment = await commentRepo.findById(id);
   if (!comment) throw new NotFoundError('Comment not found');
@@ -39,7 +39,11 @@ export const deleteComment = async (id, user) => {
   // Verify task access
   await taskService.getTask(comment.taskId, user);
 
-  if (user.role !== 'ADMIN' && comment.authorId !== user.userId) {
+  const isAuthor = comment.authorId === user.userId;
+  const isAdmin = user.role === 'ADMIN';
+  const isProjectManager = user.role === 'MANAGER';
+
+  if (!isAdmin && !isAuthor && !isProjectManager) {
     throw new ForbiddenError('You can only delete your own comments');
   }
 

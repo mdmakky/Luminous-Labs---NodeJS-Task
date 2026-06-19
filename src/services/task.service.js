@@ -9,7 +9,11 @@ export const listTasks = async (filters, { userId, role }) => {
     filters.assigneeId = userId;
   }
 
-  // Managers only see tasks in their own projects (enforced by RBAC middleware too)
+  // Managers only see tasks in their own projects
+  if (role === 'MANAGER') {
+    filters.projectOwnerId = userId;
+  }
+
   return taskRepo.findAll(filters);
 };
 
