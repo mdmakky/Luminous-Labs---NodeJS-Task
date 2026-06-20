@@ -10,6 +10,9 @@ import { sendSuccess } from './utils/response.js';
 
 const app = express();
 
+// Trust the first proxy hop — required for express-rate-limit to read X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // ----- Security & utility middleware -----
 // Disable CSP to allow inline assets required by Swagger UI
 app.use(

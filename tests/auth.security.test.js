@@ -122,10 +122,17 @@ describe('Auth Security Tests', () => {
         password: 'WrongPassword1',
       };
 
-      // Limit is 5. Request 6 times.
+      // Use a unique IP per test-run to avoid cross-suite rate-limit state pollution
+      // (express-rate-limit stores counts in-memory per IP, shared across the process)
+      const uniqueIp = `10.0.${Math.floor(Math.random() * 255)}.${Math.floor(Date.now() % 255)}`;
+
+      // Limit is 5. Request 6 times with the isolated IP.
       let lastRes;
       for (let i = 0; i < 6; i++) {
-        lastRes = await request(app).post('/api/v1/auth/login').send(payload);
+        lastRes = await request(app)
+          .post('/api/v1/auth/login')
+          .set('X-Forwarded-For', uniqueIp)
+          .send(payload);
       }
 
       expect(lastRes.status).toBe(429);
@@ -224,16 +231,25 @@ describe('Auth Security Tests', () => {
       expect(next).not.toHaveBeenLastCalledWith(expect.any(Error));
     });
 
-    it('should cover rbac requireCanCreateTask, requireCanDeleteTask, requireCanManageProject with undefined user', async () => {
+    it('should reject unauthenticated requests in requireCanCreateTask, requireCanDeleteTask, requireCanManageProject', async () => {
       const { requireCanCreateTask, requireCanDeleteTask, requireCanManageProject } =
         await import('../src/middleware/rbac.middleware.js');
-      const req = {}; // no req.user
-      const next = jest.fn();
+      const req = {}; // no req.user — simulates a request that bypassed authenticate middleware
 
-      requireCanCreateTask(req, {}, next);
-      requireCanDeleteTask(req, {}, next);
-      requireCanManageProject(req, {}, next);
-      expect(next).toHaveBeenCalledTimes(3);
+      const next1 = jest.fn();
+      requireCanCreateTask(req, {}, next1);
+      expect(next1).toHaveBeenCalledWith(expect.any(Error));
+      expect(next1.mock.calls[0][0].statusCode).toBe(401);
+
+      const next2 = jest.fn();
+      requireCanDeleteTask(req, {}, next2);
+      expect(next2).toHaveBeenCalledWith(expect.any(Error));
+      expect(next2.mock.calls[0][0].statusCode).toBe(401);
+
+      const next3 = jest.fn();
+      requireCanManageProject(req, {}, next3);
+      expect(next3).toHaveBeenCalledWith(expect.any(Error));
+      expect(next3.mock.calls[0][0].statusCode).toBe(401);
     });
   });
 

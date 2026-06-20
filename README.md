@@ -138,11 +138,16 @@ prisma/
 └── migrations/             # Versioned SQL migration history
 
 tests/
-├── auth.test.js            # 9 auth endpoint integration tests
-├── task.test.js            # 19 task/project/comment integration tests
-├── audit.test.js           # 4 audit trail integration tests
-├── setup.js
-└── helpers/db.helper.js    # Test DB teardown helper
+├── critical-path.test.js       # End-to-end lifecycle flow tests
+├── auth.security.test.js       # Auth security, JWT forgery, rate-limit tests
+├── authorization.test.js       # RBAC / IDOR / multi-tenancy boundary tests
+├── validation.test.js          # Zod schema, UUID, enum boundary tests
+├── database-consistency.test.js # Cascade, soft-delete, completedAt sync tests
+├── edge-cases.test.js          # Refresh token replay, expired session, pagination tests
+├── setup.js                    # Global Prisma/pool teardown
+└── helpers/
+    ├── auth.helper.js          # createTestUser + getAuthHeader utilities
+    └── db.helper.js            # clearDatabase helper
 ```
 
 ---
@@ -525,7 +530,7 @@ curl -X DELETE http://localhost:3000/api/v1/tasks/<TASK_UUID>/comments/<COMMENT_
 
 ## Production Readiness & Resilience Testing Strategy
 
-The application is validated by a robust suite of **6 modular test suites** (72 tests total) built using Jest and Supertest. The suite is designed to ensure strict alignment with production guidelines and maps test scenarios to specific business and security risks.
+The application is validated by a robust suite of **6 modular test suites** (73 tests total) built using Jest and Supertest. The suite is designed to ensure strict alignment with production guidelines and maps test scenarios to specific business and security risks.
 
 ### Running the Test Suite
 
@@ -550,7 +555,7 @@ Our test coverage exceeds the strict project guidelines, verifying that code bra
 | Metric | Required Threshold | Current Coverage | Status |
 |---|---|---|---|
 | **Lines** | ≥ 85% | **100.00%** | **PASSED** ✅ |
-| **Branches** | ≥ 80% | **92.01%** | **PASSED** ✅ |
+| **Branches** | ≥ 80% | **92.21%** | **PASSED** ✅ |
 | **Functions** | ≥ 85% | **100.00%** | **PASSED** ✅ |
 | **Statements** | — | **100.00%** | **PASSED** ✅ |
 
@@ -612,5 +617,5 @@ The application incorporates key resilience and security features out of the box
 | **Data Soft-Delete** | Task, project, and comment entries respect logical `deletedAt` and `deletedBy` records to prevent state pollution. |
 | **Task Timestamping & Auditing** | `completedAt` values dynamically transition with task statuses; status logs generate immutable audit logs. |
 | **Auth Rate Limiting** | Authentication endpoints are protected against brute-force attacks via sliding-window limiters (5 requests per 15 minutes). |
-| **DB Pool Tuning & Cleanup** | Connection limits managed dynamically (`max: 20`); scheduler prunes expired database sessions non-blockingly at startup. |
+| **DB Pool Tuning & Cleanup** | Connection limits managed dynamically (`max: 10`); scheduler prunes expired database sessions non-blockingly at startup. |
 | **Express Security Hardening** | GZIP body compression via `compression`, unified request headers masking via `helmet`, and client-side error stack trace suppression. |

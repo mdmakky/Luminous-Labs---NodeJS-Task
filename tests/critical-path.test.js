@@ -175,7 +175,9 @@ describe('Critical-Path Tests', () => {
       .set('Authorization', managerHeader)
       .query({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' });
     expect(auditLogs.status).toBe(200);
-    expect(auditLogs.body.data.length).toBe(2); // Two transitions: TODO -> IN_PROGRESS -> DONE
+    // Only status transitions create audit entries — title-only updates (step 2B) do NOT.
+    // Expected: TODO→IN_PROGRESS (step 4) and IN_PROGRESS→DONE (step 5) = exactly 2 logs.
+    expect(auditLogs.body.data.length).toBe(2);
 
     // E2. Retrieve audit trail without any query parameters to cover defaults
     const defaultAuditLogs = await request(app)

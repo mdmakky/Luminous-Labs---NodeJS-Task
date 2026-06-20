@@ -174,5 +174,31 @@ describe('Validation & Boundary Tests', () => {
       expect(next).toHaveBeenCalledWith(expect.any(Error));
       expect(next.mock.calls[0][0].message).toBe('Fake Generic Parsing Error');
     });
+
+    it('should map ZodError to ValidationError with structured field errors', async () => {
+      const { z } = await import('zod');
+      const { ValidationError } = await import('../src/utils/errors.js');
+      const validate = (await import('../src/middleware/validation.middleware.js')).default;
+
+      // Schema that requires a body.name field of at least 2 chars
+      const schema = z.object({
+        body: z.object({
+          name: z.string().min(2, 'Name must be at least 2 characters'),
+        }),
+        query: z.object({}).optional(),
+        params: z.object({}).optional(),
+      });
+
+      const req = { body: { name: 'A' }, query: {}, params: {} };
+      const next = jest.fn();
+
+      validate(schema)(req, {}, next);
+      expect(next).toHaveBeenCalledWith(expect.any(ValidationError));
+      const err = next.mock.calls[0][0];
+      expect(err.statusCode).toBe(400);
+      expect(err.message).toBe('Validation failed');
+      expect(err.errors.length).toBeGreaterThan(0);
+      expect(err.errors[0].message).toContain('at least 2 characters');
+    });
   });
 });

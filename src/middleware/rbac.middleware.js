@@ -16,7 +16,10 @@ export const requireRole = (...roles) => {
 
 // Block members from creating tasks (only ADMIN and MANAGER can create)
 export const requireCanCreateTask = (req, _res, next) => {
-  if (req.user?.role === 'MEMBER') {
+  if (!req.user) {
+    return next(new UnauthorizedError('Not authenticated'));
+  }
+  if (req.user.role === 'MEMBER') {
     return next(new ForbiddenError('Members are not allowed to create tasks'));
   }
   next();
@@ -24,15 +27,21 @@ export const requireCanCreateTask = (req, _res, next) => {
 
 // Block members from deleting tasks
 export const requireCanDeleteTask = (req, _res, next) => {
-  if (req.user?.role === 'MEMBER') {
+  if (!req.user) {
+    return next(new UnauthorizedError('Not authenticated'));
+  }
+  if (req.user.role === 'MEMBER') {
     return next(new ForbiddenError('Members are not allowed to delete tasks'));
   }
   next();
 };
 
-// Block members from creating projects
+// Block members from managing projects
 export const requireCanManageProject = (req, _res, next) => {
-  if (req.user?.role === 'MEMBER') {
+  if (!req.user) {
+    return next(new UnauthorizedError('Not authenticated'));
+  }
+  if (req.user.role === 'MEMBER') {
     return next(new ForbiddenError('Members are not allowed to manage projects'));
   }
   next();
